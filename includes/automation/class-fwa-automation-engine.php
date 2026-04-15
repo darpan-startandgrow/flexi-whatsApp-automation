@@ -59,24 +59,10 @@ class FWA_Automation_Engine {
 		add_action( 'user_register', array( $this, 'on_user_register' ), 10, 1 );
 		add_action( 'wp_login', array( $this, 'on_user_login' ), 10, 2 );
 
-		// --- Flexi Revive Cart hooks ---
-		if ( function_exists( 'frc_after_cart_tracked' ) || did_action( 'frc_after_cart_tracked' ) ) {
-			add_action( 'frc_after_cart_tracked', array( $this, 'on_cart_abandoned' ), 10, 2 );
-		} else {
-			add_action( 'frc_after_cart_tracked', array( $this, 'on_cart_abandoned' ), 10, 2 );
-		}
-
-		if ( function_exists( 'frc_cart_restore_complete' ) || did_action( 'frc_cart_restore_complete' ) ) {
-			add_action( 'frc_cart_restore_complete', array( $this, 'on_cart_recovered' ), 10, 2 );
-		} else {
-			add_action( 'frc_cart_restore_complete', array( $this, 'on_cart_recovered' ), 10, 2 );
-		}
-
-		if ( function_exists( 'frc_dispatch_reminder' ) || did_action( 'frc_dispatch_reminder' ) ) {
-			add_action( 'frc_dispatch_reminder', array( $this, 'on_frc_reminder' ), 10, 2 );
-		} else {
-			add_action( 'frc_dispatch_reminder', array( $this, 'on_frc_reminder' ), 10, 2 );
-		}
+		// --- Flexi Revive Cart hooks (safe to register; callbacks are no-ops when FRC is absent) ---
+		add_action( 'frc_after_cart_tracked', array( $this, 'on_cart_abandoned' ), 10, 2 );
+		add_action( 'frc_cart_restore_complete', array( $this, 'on_cart_recovered' ), 10, 2 );
+		add_action( 'frc_dispatch_reminder', array( $this, 'on_frc_reminder' ), 10, 2 );
 
 		// --- Generic custom trigger ---
 		add_action( 'fwa_trigger_automation', array( $this, 'on_custom_trigger' ), 10, 2 );
