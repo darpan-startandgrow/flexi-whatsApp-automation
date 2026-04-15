@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Flexi WhatsApp Automation
  * Plugin URI:  https://github.com/darpan-startandgrow/flexi-whatsApp-automation
- * Description: WhatsApp Web-based messaging automation for WordPress & WooCommerce. Multi-account management, campaigns, scheduling, and logging. Works as an add-on for Flexi Revive Cart.
+ * Description: WhatsApp Web-based messaging automation for WordPress & WooCommerce. Multi-account management, campaigns, scheduling, and logging. Works standalone or enhances Flexi Revive Cart when present.
  * Version:     1.0.0
  * Author:      Darpan Sarmah
  * Author URI:  https://github.com/darpan-startandgrow
@@ -146,4 +146,47 @@ add_action( 'wp_ajax_fwa_deactivation_cleanup', function () {
 	}
 
 	wp_send_json_success();
+});
+
+/**
+ * Enqueue the deactivation modal script on the Plugins page.
+ *
+ * @since 1.0.0
+ */
+add_action( 'admin_enqueue_scripts', function ( $hook ) {
+	if ( 'plugins.php' !== $hook ) {
+		return;
+	}
+
+	wp_enqueue_style(
+		'fwa-admin',
+		FWA_PLUGIN_URL . 'admin/css/fwa-admin.css',
+		array(),
+		FWA_VERSION
+	);
+
+	wp_enqueue_script(
+		'fwa-admin',
+		FWA_PLUGIN_URL . 'admin/js/fwa-admin.js',
+		array( 'jquery' ),
+		FWA_VERSION,
+		true
+	);
+
+	wp_localize_script(
+		'fwa-admin',
+		'fwa_deactivation',
+		array(
+			'plugin_basename' => FWA_PLUGIN_BASENAME,
+			'ajax_url'        => admin_url( 'admin-ajax.php' ),
+			'nonce'           => wp_create_nonce( 'fwa_deactivation_nonce' ),
+			'strings'         => array(
+				'title'       => __( 'Flexi WhatsApp Automation – Deactivation', 'flexi-whatsapp-automation' ),
+				'message'     => __( 'Would you like to delete all plugin data (database tables, settings, and logs) or keep it for future use?', 'flexi-whatsapp-automation' ),
+				'delete_data' => __( 'Delete Data & Deactivate', 'flexi-whatsapp-automation' ),
+				'keep_data'   => __( 'Keep Data & Deactivate', 'flexi-whatsapp-automation' ),
+				'cancel'      => __( 'Cancel', 'flexi-whatsapp-automation' ),
+			),
+		)
+	);
 });

@@ -1,0 +1,292 @@
+/**
+ * Flexi WhatsApp Automation – Admin Stylesheet
+ *
+ * @package Flexi_WhatsApp_Automation
+ * @since   1.0.0
+ */
+
+/* ==========================================================================
+   Layout & Cards
+   ========================================================================== */
+
+.fwa-form-card {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 6px;
+	padding: 16px 20px;
+	margin-bottom: 16px;
+}
+
+.fwa-form-card h3,
+.fwa-form-card h4 {
+	margin-top: 0;
+}
+
+/* ==========================================================================
+   Stats Cards (Dashboard)
+   ========================================================================== */
+
+.fwa-stats-cards {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 16px;
+	margin-bottom: 20px;
+}
+
+.fwa-stat-card {
+	flex: 1 1 200px;
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 8px;
+	padding: 20px;
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	min-width: 180px;
+}
+
+.fwa-stat-card .dashicons {
+	font-size: 36px;
+	width: 36px;
+	height: 36px;
+	line-height: 36px;
+}
+
+.fwa-stat-card .fwa-stat-value {
+	font-size: 28px;
+	font-weight: 700;
+	line-height: 1;
+	display: block;
+}
+
+.fwa-stat-card .fwa-stat-label {
+	font-size: 13px;
+	color: #50575e;
+	display: block;
+	margin-top: 2px;
+}
+
+.fwa-stat-green .dashicons { color: #00a32a; }
+.fwa-stat-blue  .dashicons { color: #2271b1; }
+.fwa-stat-orange .dashicons { color: #dba617; }
+.fwa-stat-purple .dashicons { color: #8c5fc7; }
+
+/* ==========================================================================
+   Status Badges
+   ========================================================================== */
+
+.fwa-badge {
+	display: inline-block;
+	padding: 2px 8px;
+	border-radius: 3px;
+	font-size: 11px;
+	font-weight: 600;
+	text-transform: uppercase;
+	white-space: nowrap;
+}
+
+.fwa-badge-connected    { background: #d1fae5; color: #065f46; }
+.fwa-badge-disconnected { background: #fee2e2; color: #991b1b; }
+.fwa-badge-qr_required  { background: #fef3c7; color: #92400e; }
+.fwa-badge-initializing { background: #dbeafe; color: #1e40af; }
+.fwa-badge-banned       { background: #e5e7eb; color: #374151; }
+
+.fwa-badge-sent         { background: #d1fae5; color: #065f46; }
+.fwa-badge-delivered    { background: #cffafe; color: #155e75; }
+.fwa-badge-read         { background: #dbeafe; color: #1e40af; }
+.fwa-badge-failed       { background: #fee2e2; color: #991b1b; }
+.fwa-badge-pending      { background: #fef3c7; color: #92400e; }
+.fwa-badge-queued       { background: #e0e7ff; color: #3730a3; }
+
+.fwa-badge-draft        { background: #f3f4f6; color: #6b7280; }
+.fwa-badge-scheduled    { background: #ede9fe; color: #5b21b6; }
+.fwa-badge-running      { background: #dbeafe; color: #1e40af; }
+.fwa-badge-paused       { background: #fef3c7; color: #92400e; }
+.fwa-badge-completed    { background: #d1fae5; color: #065f46; }
+
+.fwa-badge-active       { background: #d1fae5; color: #065f46; }
+
+.fwa-badge-debug    { background: #e5e7eb; color: #50575e; }
+.fwa-badge-info     { background: #d1ecf1; color: #0c5460; }
+.fwa-badge-warning  { background: #fff3cd; color: #856404; }
+.fwa-badge-error    { background: #f8d7da; color: #721c24; }
+.fwa-badge-critical { background: #d63638; color: #fff; }
+
+/* ==========================================================================
+   Filters Row
+   ========================================================================== */
+
+.fwa-filters {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	align-items: center;
+	margin-bottom: 16px;
+}
+
+.fwa-filters select,
+.fwa-filters input[type="text"],
+.fwa-filters input[type="date"] {
+	max-width: 220px;
+}
+
+/* ==========================================================================
+   Tables
+   ========================================================================== */
+
+.fwa-contacts-page .widefat td,
+.fwa-messages-page .widefat td,
+.fwa-campaigns-page .widefat td,
+.fwa-logs-page .widefat td,
+.fwa-schedules-page .widefat td {
+	vertical-align: middle;
+}
+
+/* ==========================================================================
+   Pagination
+   ========================================================================== */
+
+.fwa-pagination {
+	margin-top: 12px;
+	text-align: right;
+}
+
+.fwa-pagination .button {
+	margin-left: 4px;
+}
+
+/* ==========================================================================
+   Automation Rules
+   ========================================================================== */
+
+.fwa-rule-card {
+	position: relative;
+	margin-bottom: 14px;
+}
+
+.fwa-rule-header {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin-bottom: 8px;
+}
+
+.fwa-rule-header .fwa-remove-rule {
+	margin-left: auto;
+	color: #a00;
+}
+
+.fwa-placeholder-ref code {
+	display: inline-block;
+	margin: 2px 4px 2px 0;
+	padding: 2px 6px;
+	background: #f0f0f1;
+	border-radius: 3px;
+	font-size: 12px;
+}
+
+/* ==========================================================================
+   QR Code Area
+   ========================================================================== */
+
+.fwa-qr-area {
+	text-align: center;
+	padding: 20px;
+}
+
+.fwa-qr-area img {
+	max-width: 280px;
+	border: 1px solid #ddd;
+	border-radius: 8px;
+}
+
+/* ==========================================================================
+   Settings Tabs
+   ========================================================================== */
+
+.fwa-settings-page .nav-tab-wrapper {
+	margin-bottom: 0;
+}
+
+.fwa-settings-page .fwa-form-card {
+	border-top: none;
+	border-radius: 0 0 6px 6px;
+}
+
+/* ==========================================================================
+   Deactivation Modal
+   ========================================================================== */
+
+.fwa-deactivation-overlay {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: rgba(0, 0, 0, 0.6);
+	z-index: 100050;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.fwa-deactivation-modal {
+	background: #fff;
+	border-radius: 8px;
+	padding: 28px 32px;
+	max-width: 460px;
+	width: 90%;
+	box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+}
+
+.fwa-deactivation-modal h3 {
+	margin-top: 0;
+	font-size: 16px;
+}
+
+.fwa-deactivation-modal p {
+	font-size: 13px;
+	color: #50575e;
+}
+
+.fwa-deactivation-modal .fwa-modal-actions {
+	display: flex;
+	gap: 10px;
+	margin-top: 20px;
+}
+
+.fwa-deactivation-modal .button-delete-data {
+	color: #a00;
+	border-color: #a00;
+}
+
+.fwa-deactivation-modal .button-delete-data:hover {
+	color: #fff;
+	background: #a00;
+	border-color: #a00;
+}
+
+/* ==========================================================================
+   Responsive
+   ========================================================================== */
+
+@media screen and (max-width: 782px) {
+	.fwa-stats-cards {
+		flex-direction: column;
+	}
+
+	.fwa-stat-card {
+		flex: 1 1 100%;
+	}
+
+	.fwa-filters {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	.fwa-filters select,
+	.fwa-filters input[type="text"],
+	.fwa-filters input[type="date"] {
+		max-width: 100%;
+	}
+}

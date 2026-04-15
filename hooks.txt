@@ -1,0 +1,363 @@
+================================================================================
+ Flexi WhatsApp Automation – Developer Hooks Reference
+ Version: 1.0.0
+================================================================================
+
+This file lists all actions and filters provided by the Flexi WhatsApp
+Automation plugin. Use these hooks to extend, modify, or integrate with
+the plugin from your own themes or plugins.
+
+================================================================================
+ TABLE OF CONTENTS
+================================================================================
+
+  1. Lifecycle Hooks
+  2. Admin Hooks
+  3. API Client Hooks
+  4. Instance Manager Hooks
+  5. Messaging Hooks
+  6. Campaign Hooks
+  7. Scheduler / Queue Hooks
+  8. Automation Engine Hooks
+  9. Contact Manager Hooks
+ 10. Webhook Hooks
+ 11. Logging Hooks
+ 12. Dashboard Widget Hooks
+ 13. Settings Hooks
+ 14. Public / Frontend Hooks
+
+================================================================================
+ 1. LIFECYCLE HOOKS
+================================================================================
+
+ACTION: fwa_loaded
+  Fires after the plugin is fully loaded (all files included).
+  Hook: plugins_loaded (priority 15)
+  Use:  Safe entry point for add-ons and extensions.
+  Example:
+    add_action( 'fwa_loaded', function() {
+        // Your extension code here.
+    });
+
+ACTION: fwa_modules_loaded
+  Fires after all FWA module classes have been instantiated.
+  Use:  Guaranteed all core modules are available.
+
+================================================================================
+ 2. ADMIN HOOKS
+================================================================================
+
+ACTION: fwa_admin_init
+  Fires on WordPress admin_init within the FWA admin context.
+
+ACTION: fwa_admin_menu (string $parent_slug)
+  Fires after all FWA admin menus are registered.
+  Use:  Add additional submenus to the WhatsApp Auto menu.
+  Example:
+    add_action( 'fwa_admin_menu', function( $parent_slug ) {
+        add_submenu_page( $parent_slug, 'My Page', 'My Page', 'manage_options', 'fwa-my-page', 'my_callback' );
+    });
+
+ACTION: fwa_admin_page_before (string $page)
+  Fires before the admin page content is rendered.
+  $page: Current page slug (e.g., 'fwa-dashboard').
+
+ACTION: fwa_admin_page_after (string $page)
+  Fires after the admin page content is rendered.
+
+ACTION: fwa_admin_enqueue_scripts (string $hook)
+  Fires after FWA admin scripts are enqueued.
+  $hook: Current admin page hook suffix.
+  Use:  Enqueue additional scripts or styles for FWA admin pages.
+
+FILTER: fwa_admin_page_hooks (array $hooks)
+  Filters the list of FWA admin page hook suffixes.
+  Use:  Add custom pages to the script-loading whitelist.
+
+================================================================================
+ 3. API CLIENT HOOKS
+================================================================================
+
+ACTION: fwa_before_api_request (string $endpoint, string $method, array $body)
+  Fires before every API request is sent.
+
+ACTION: fwa_after_api_request (string $endpoint, mixed $response, array $body)
+  Fires after every API request completes (success or failure).
+
+ACTION: fwa_api_error (string $endpoint, WP_Error $error)
+  Fires when an API request results in an error.
+
+FILTER: fwa_api_request_args (array $args)
+  Filters the wp_remote_request() arguments before sending.
+  Use:  Add custom headers, modify timeout, etc.
+  Example:
+    add_filter( 'fwa_api_request_args', function( $args ) {
+        $args['timeout'] = 60;
+        return $args;
+    });
+
+FILTER: fwa_api_response (mixed $response, string $endpoint)
+  Filters the API response after decoding.
+  Use:  Post-process or transform API responses.
+
+================================================================================
+ 4. INSTANCE MANAGER HOOKS
+================================================================================
+
+ACTION: fwa_instance_created (int $id, array $args)
+  Fires after a new WhatsApp instance is created.
+
+ACTION: fwa_instance_updated (int $id, array $args)
+  Fires after an instance record is updated.
+
+ACTION: fwa_instance_deleted (int $id)
+  Fires after an instance is deleted.
+
+ACTION: fwa_instance_activated (int $id)
+  Fires after an instance is set as the active instance.
+
+ACTION: fwa_instance_status_changed (int $id, string $new_status, string $old_status)
+  Fires after an instance status changes.
+
+ACTION: fwa_instance_health_checked (array $results)
+  Fires after the health check runs on all instances.
+  $results: Array of instance IDs and their status results.
+
+================================================================================
+ 5. MESSAGING HOOKS
+================================================================================
+
+FILTER: fwa_before_send_message (array|false $args)
+  Filters message arguments before sending.
+  Return false to cancel the message.
+  $args keys: to, type, content, media_url, media_caption, instance_id,
+              campaign_id, schedule_id.
+  Example:
+    add_filter( 'fwa_before_send_message', function( $args ) {
+        if ( some_condition() ) {
+            return false; // Cancel this message.
+        }
+        $args['content'] .= "\n\nSent via MyPlugin";
+        return $args;
+    });
+
+ACTION: fwa_message_sent (int $message_id, array $args)
+  Fires after a message is successfully sent.
+
+ACTION: fwa_message_failed (int $message_id, array $args, WP_Error $error)
+  Fires after a message fails to send.
+
+ACTION: fwa_message_status_updated (int $message_id, string $status)
+  Fires after a message status is updated in the database.
+
+ACTION: fwa_message_received (array $message_data)
+  Fires when an incoming message is received via webhook.
+
+ACTION: fwa_incoming_text (string $from, string $content, string $instance_id)
+  Fires when an incoming text message is received.
+
+ACTION: fwa_incoming_media (string $from, array $media_data, string $instance_id)
+  Fires when an incoming media message is received.
+
+================================================================================
+ 6. CAMPAIGN HOOKS
+================================================================================
+
+ACTION: fwa_campaign_created (int $id, array $args)
+  Fires after a campaign is created.
+
+ACTION: fwa_campaign_updated (int $id, array $args)
+  Fires after a campaign is updated.
+
+ACTION: fwa_campaign_deleted (int $id)
+  Fires after a campaign is deleted.
+
+ACTION: fwa_campaign_started (int $id)
+  Fires after a campaign begins execution.
+
+ACTION: fwa_campaign_paused (int $id)
+  Fires after a campaign is paused.
+
+ACTION: fwa_campaign_resumed (int $id)
+  Fires after a paused campaign is resumed.
+
+FILTER: fwa_campaign_recipients (array $phones, array $filter)
+  Filters the resolved recipient phone numbers for a campaign.
+  $phones: Array of phone number strings.
+  $filter: The raw recipients_filter array from the campaign.
+  Use:  Add or remove recipients dynamically.
+
+FILTER: fwa_campaign_message_delay (int $seconds)
+  Filters the delay (in seconds) between individual campaign messages.
+  Default: 3 seconds.
+
+================================================================================
+ 7. SCHEDULER / QUEUE HOOKS
+================================================================================
+
+ACTION: fwa_schedule_created (int $id, array $args)
+  Fires after a schedule is created.
+
+ACTION: fwa_schedule_updated (int $id, array $args)
+  Fires after a schedule is updated.
+
+ACTION: fwa_schedule_deleted (int $id)
+  Fires after a schedule is deleted.
+
+ACTION: fwa_queue_processed (int $count)
+  Fires after the queue worker finishes processing.
+  $count: Number of scheduled messages processed.
+
+FILTER: fwa_schedule_next_run (string $datetime, string $recurrence_rule)
+  Filters the calculated next-run datetime for recurring schedules.
+  $datetime: ISO 8601 datetime string.
+  $recurrence_rule: The recurrence rule string (e.g., 'daily', 'hourly').
+  Use:  Implement custom recurrence rules.
+
+================================================================================
+ 8. AUTOMATION ENGINE HOOKS
+================================================================================
+
+ACTION: fwa_automation_triggered (string $event_name, mixed $context)
+  Fires after an automation event is triggered.
+  $event_name: Event identifier (e.g., 'new_order', 'user_register').
+  $context:    Order ID, user ID, or custom data.
+
+ACTION: fwa_trigger_automation (string $event_name, array $data)
+  **Custom trigger entry point.**
+  Any plugin can fire this action to trigger FWA automation rules.
+  Example:
+    do_action( 'fwa_trigger_automation', 'my_custom_event', array(
+        'phone'         => '+1234567890',
+        'customer_name' => 'John Doe',
+        'custom_field'  => 'value',
+    ));
+
+FILTER: fwa_automation_rules (array $rules)
+  Filters the loaded automation rules before evaluation.
+  Each rule: array with keys id, event, enabled, instance_id, template,
+  phone_field, conditions, message_type, media_url.
+
+FILTER: fwa_automation_events (array $events)
+  Filters the supported automation event list.
+  $events: Associative array of event_slug => display_label.
+  Example:
+    add_filter( 'fwa_automation_events', function( $events ) {
+        $events['membership_activated'] = 'Membership Activated';
+        return $events;
+    });
+
+FILTER: fwa_template_variables (array $variables, array $data)
+  Filters the available template placeholder variables.
+  $variables: Associative array of placeholder => value.
+  $data:      The raw event data.
+  Use:  Add custom placeholders for your events.
+
+FILTER: fwa_resolved_template (string $message, array $data, array $rule)
+  Filters the final resolved message text before sending.
+
+================================================================================
+ 9. CONTACT MANAGER HOOKS
+================================================================================
+
+ACTION: fwa_contact_created (int $id, array $args)
+  Fires after a contact is created.
+
+ACTION: fwa_contact_updated (int $id, array $args)
+  Fires after a contact is updated.
+
+ACTION: fwa_contact_deleted (int $id)
+  Fires after a contact is deleted.
+
+ACTION: fwa_contact_subscribed (int $id)
+  Fires after a contact is subscribed (opted in).
+
+ACTION: fwa_contact_unsubscribed (int $id)
+  Fires after a contact is unsubscribed (opted out).
+
+ACTION: fwa_contacts_imported (int $count, string $file_path)
+  Fires after contacts are imported from CSV.
+
+ACTION: fwa_contacts_synced_woocommerce (int $count)
+  Fires after contacts are synced from WooCommerce customers.
+
+================================================================================
+ 10. WEBHOOK HOOKS
+================================================================================
+
+ACTION: fwa_webhook_received (string $event_type, array $data)
+  Fires when any webhook event is received.
+  $event_type: e.g., 'message', 'status', 'session'.
+
+ACTION: fwa_message_status_webhook (string $message_id, string $status)
+  Fires when a delivery status update is received via webhook.
+
+ACTION: fwa_session_status_webhook (string $instance_id, string $status)
+  Fires when a session status update is received via webhook.
+
+================================================================================
+ 11. LOGGING HOOKS
+================================================================================
+
+ACTION: fwa_log_entry (string $level, string $message, array $context, string $source)
+  Fires after a log entry is written.
+  $level:   debug, info, warning, error, critical.
+  $source:  Module that wrote the log (e.g., 'api_client', 'scheduler').
+
+ACTION: fwa_logs_cleaned (int $deleted_count, int $days)
+  Fires after old logs are cleaned up by the daily cron.
+
+FILTER: fwa_export_log_columns (array $columns)
+  Filters the columns included in log CSV exports.
+
+================================================================================
+ 12. DASHBOARD WIDGET HOOKS
+================================================================================
+
+FILTER: fwa_dashboard_widget_data (array $data)
+  Filters the data displayed in the WordPress Dashboard widget.
+  $data keys: connected_accounts, active_sessions, total_sessions,
+              messages_sent_today, messages_received_today, pending_queue,
+              instances, recent_logs.
+
+================================================================================
+ 13. SETTINGS HOOKS
+================================================================================
+
+ACTION: fwa_register_settings
+  Fires after all core settings are registered.
+  Use:  Register additional settings fields.
+
+FILTER: fwa_settings_tabs (array $tabs)
+  Filters the settings page tabs.
+  $tabs: Associative array of tab_slug => display_label.
+  Example:
+    add_filter( 'fwa_settings_tabs', function( $tabs ) {
+        $tabs['my_section'] = 'My Custom Section';
+        return $tabs;
+    });
+
+ACTION: fwa_render_settings_tab_{$tab_id}
+  Fires after the settings tab content for a specific tab.
+  Use:  Render custom settings fields under a specific tab.
+
+================================================================================
+ 14. PUBLIC / FRONTEND HOOKS
+================================================================================
+
+ACTION: fwa_public_enqueue_scripts
+  Fires when public-facing scripts are being enqueued.
+  Use:  Enqueue frontend scripts or styles for FWA features.
+
+================================================================================
+ NOTES
+================================================================================
+
+- All hooks use the `fwa_` prefix.
+- Hooks follow WordPress naming conventions (actions use verbs, filters use
+  nouns or adjective phrases).
+- For security, always verify capabilities before performing actions in
+  your hook callbacks.
+- The plugin fires Flexi Revive Cart hooks (frc_*) only when that plugin
+  is active. The fwa_trigger_automation action provides a safe generic
+  entry point for any third-party integration.

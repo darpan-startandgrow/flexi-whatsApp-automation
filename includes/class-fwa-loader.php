@@ -35,37 +35,48 @@ class FWA_Loader {
 		// 2. Database installer.
 		require_once FWA_PLUGIN_DIR . 'includes/class-fwa-db.php';
 
-		// 3. API Client.
+		// 3. Uninstaller (needed by deactivator for full-cleanup path).
+		require_once FWA_PLUGIN_DIR . 'includes/class-fwa-uninstaller.php';
+
+		// 4. API Client.
 		require_once FWA_PLUGIN_DIR . 'includes/api/class-fwa-api-client.php';
 
-		// 4. Instance Manager.
+		// 5. Instance Manager.
 		require_once FWA_PLUGIN_DIR . 'includes/instance/class-fwa-instance-manager.php';
 
-		// 5. Messaging Engine.
-		require_once FWA_PLUGIN_DIR . 'includes/messaging/class-fwa-messaging-engine.php';
+		// 6. Message Sender.
+		require_once FWA_PLUGIN_DIR . 'includes/messaging/class-fwa-message-sender.php';
 
-		// 6. Campaign Manager.
+		// 7. Contact Manager.
+		require_once FWA_PLUGIN_DIR . 'includes/messaging/class-fwa-contact-manager.php';
+
+		// 8. Campaign Manager.
 		require_once FWA_PLUGIN_DIR . 'includes/campaign/class-fwa-campaign-manager.php';
 
-		// 7. Scheduler / Queue.
+		// 9. Scheduler / Queue.
 		require_once FWA_PLUGIN_DIR . 'includes/scheduler/class-fwa-scheduler.php';
 
-		// 8. Automation Engine.
+		// 10. Automation Engine.
 		require_once FWA_PLUGIN_DIR . 'includes/automation/class-fwa-automation-engine.php';
 
-		// 9. Webhook Controller.
+		// 11. Webhook Controller.
 		require_once FWA_PLUGIN_DIR . 'includes/webhook/class-fwa-webhook-controller.php';
 
-		// 10. Logger.
+		// 12. Logger.
 		require_once FWA_PLUGIN_DIR . 'includes/logging/class-fwa-logger.php';
 
-		// 11. Admin (conditional).
+		// 13. Dashboard Widget.
+		require_once FWA_PLUGIN_DIR . 'includes/class-fwa-dashboard-widget.php';
+
+		// 14. Admin (conditional).
 		if ( is_admin() ) {
 			require_once FWA_PLUGIN_DIR . 'admin/class-fwa-admin.php';
+			require_once FWA_PLUGIN_DIR . 'admin/class-fwa-admin-settings.php';
+			require_once FWA_PLUGIN_DIR . 'admin/class-fwa-admin-ajax.php';
 		}
 
-		// 12. Public.
-		require_once FWA_PLUGIN_DIR . 'public/class-fwa-public.php';
+		// 15. Public.
+		require_once FWA_PLUGIN_DIR . 'includes/class-fwa-public.php';
 	}
 
 	/**
@@ -113,16 +124,22 @@ class FWA_Loader {
 		// Core modules.
 		new FWA_API_Client();
 		new FWA_Instance_Manager();
-		new FWA_Messaging_Engine();
+		new FWA_Message_Sender();
+		new FWA_Contact_Manager();
 		new FWA_Campaign_Manager();
 		new FWA_Scheduler();
 		new FWA_Automation_Engine();
 		new FWA_Webhook_Controller();
-		new FWA_Logger();
+		FWA_Logger::get_instance();
+
+		// Dashboard widget.
+		new FWA_Dashboard_Widget();
 
 		// Admin.
 		if ( is_admin() ) {
 			new FWA_Admin();
+			new FWA_Admin_Settings();
+			new FWA_Admin_AJAX();
 		}
 
 		// Public-facing.
