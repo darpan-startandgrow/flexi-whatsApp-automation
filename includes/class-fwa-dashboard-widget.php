@@ -267,7 +267,7 @@ class FWA_Dashboard_Widget {
 
 		// Instance data.
 		if ( class_exists( 'FWA_Instance_Manager' ) ) {
-			$manager = FWA_Instance_Manager::get_instance();
+			$manager = new FWA_Instance_Manager();
 
 			if ( method_exists( $manager, 'get_connected_count' ) ) {
 				$data['connected_accounts'] = $manager->get_connected_count();
@@ -285,7 +285,7 @@ class FWA_Dashboard_Widget {
 
 		// Message data.
 		if ( class_exists( 'FWA_Message_Sender' ) ) {
-			$sender = FWA_Message_Sender::get_instance();
+			$sender = new FWA_Message_Sender();
 
 			if ( method_exists( $sender, 'get_sent_today_count' ) ) {
 				$data['messages_sent_today'] = $sender->get_sent_today_count();
@@ -297,7 +297,7 @@ class FWA_Dashboard_Widget {
 
 		// Scheduler data.
 		if ( class_exists( 'FWA_Scheduler' ) ) {
-			$scheduler = FWA_Scheduler::get_instance();
+			$scheduler = new FWA_Scheduler();
 
 			if ( method_exists( $scheduler, 'get_pending_count' ) ) {
 				$data['pending_queue'] = $scheduler->get_pending_count();
@@ -395,7 +395,7 @@ JS;
 			wp_send_json_error( array( 'message' => __( 'Message sender is not available.', 'flexi-whatsapp-automation' ) ) );
 		}
 
-		$sender = FWA_Message_Sender::get_instance();
+		$sender = new FWA_Message_Sender();
 		$result = $sender->send( $phone, $message, $instance_id );
 
 		if ( is_wp_error( $result ) ) {

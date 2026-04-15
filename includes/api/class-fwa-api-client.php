@@ -74,7 +74,7 @@ class FWA_API_Client {
 		$this->access_token = $access_token;
 
 		if ( class_exists( 'FWA_Logger' ) ) {
-			$this->logger = new FWA_Logger();
+			$this->logger = FWA_Logger::get_instance();
 		}
 	}
 
