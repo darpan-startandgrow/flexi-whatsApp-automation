@@ -69,6 +69,36 @@ class FWA_Loader {
 	}
 
 	/**
+	 * Register custom cron schedule intervals.
+	 *
+	 * Must run on every request so WordPress can resolve
+	 * the custom intervals stored by the activator.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param array $schedules Existing cron schedules.
+	 * @return array Modified cron schedules.
+	 */
+	public static function add_cron_schedules( $schedules ) {
+
+		if ( ! isset( $schedules['every_minute'] ) ) {
+			$schedules['every_minute'] = array(
+				'interval' => 60,
+				'display'  => __( 'Every Minute', 'flexi-whatsapp-automation' ),
+			);
+		}
+
+		if ( ! isset( $schedules['every_five_minutes'] ) ) {
+			$schedules['every_five_minutes'] = array(
+				'interval' => 300,
+				'display'  => __( 'Every 5 Minutes', 'flexi-whatsapp-automation' ),
+			);
+		}
+
+		return $schedules;
+	}
+
+	/**
 	 * Initialize all components and fire the ready hook.
 	 *
 	 * @since 1.0.0
@@ -76,6 +106,9 @@ class FWA_Loader {
 	public function run() {
 
 		$this->load_dependencies();
+
+		// Ensure custom cron intervals are always available.
+		add_filter( 'cron_schedules', array( __CLASS__, 'add_cron_schedules' ) );
 
 		// Core modules.
 		new FWA_API_Client();

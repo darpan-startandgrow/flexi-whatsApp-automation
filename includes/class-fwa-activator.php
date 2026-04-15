@@ -67,8 +67,8 @@ class FWA_Activator {
 	 */
 	private static function schedule_cron_events() {
 
-		// Register custom cron intervals.
-		add_filter( 'cron_schedules', array( __CLASS__, 'add_cron_schedules' ) );
+		// Temporarily register custom intervals so wp_schedule_event can resolve them.
+		add_filter( 'cron_schedules', array( 'FWA_Activator', 'add_cron_schedules' ) );
 
 		if ( ! wp_next_scheduled( 'fwa_process_queue' ) ) {
 			wp_schedule_event( time(), 'every_minute', 'fwa_process_queue' );
