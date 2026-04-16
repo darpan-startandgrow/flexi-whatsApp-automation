@@ -89,6 +89,10 @@ class FWA_Message_Sender {
 			return new WP_Error( 'fwa_missing_recipient', __( 'Recipient phone number is required.', 'flexi-whatsapp-automation' ) );
 		}
 
+		// Auto-apply default country code for numbers without one.
+		$default_cc = get_option( 'fwa_default_country_code', '' );
+		$args['to'] = FWA_Helpers::format_phone_e164( $args['to'], ltrim( $default_cc, '+' ) );
+
 		$allowed_types = array( 'text', 'image', 'video', 'audio', 'document', 'contact', 'poll', 'link_preview' );
 		if ( ! in_array( $args['type'], $allowed_types, true ) ) {
 			return new WP_Error( 'fwa_invalid_type', __( 'Invalid message type.', 'flexi-whatsapp-automation' ) );

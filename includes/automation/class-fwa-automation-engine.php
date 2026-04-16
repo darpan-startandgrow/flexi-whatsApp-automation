@@ -143,6 +143,9 @@ class FWA_Automation_Engine {
 			$this->execute_rule( $rule, $data );
 		}
 
+		// WooCommerce per-status notification (Settings → WooCommerce tab).
+		$this->send_wc_status_notification( $new_status, $data );
+
 		do_action( 'fwa_automation_triggered', $event, $order_id );
 	}
 
@@ -852,6 +855,63 @@ class FWA_Automation_Engine {
 			}
 
 			$this->message_sender->send( $admin_send_args );
+		}
+	}
+
+	/**
+	 * Send a WooCommerce per-status notification if configured in Settings → WooCommerce.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @param string $status WooCommerce status (without wc- prefix).
+	 * @param array  $data   Normalised order data from extract_order_data().
+	 * @return void
+	 */
+	private function send_wc_status_notification( $status, $data ) {
+		$wc_notifications = get_option( 'fwa_wc_notifications', array() );
+
+		if ( ! is_array( $wc_notifications ) || empty( $wc_notifications[ $status ] ) ) {
+			return;
+		}
+
+		$notif = $wc_notifications[ $status ];
+
+		if ( empty( $notif['enabled'] ) || empty( $notif['message'] ) ) {
+			return;
+		}
+
+		$phone = isset( $data['billing_phone'] ) ? $data['billing_phone'] : '';
+		if ( empty( $phone ) ) {
+			$phone = isset( $data['phone'] ) ? $data['phone'] : '';
+		}
+
+		if ( empty( $phone ) ) {
+			return;
+		}
+
+		$phone   = FWA_Helpers::sanitize_phone( $phone );
+		$content = $this->resolve_template( $notif['message'], $data );
+
+		$this->message_sender->send( array(
+			'to'      => $phone,
+			'type'    => 'text',
+			'content' => $content,
+		) );
+
+		// Admin alert for new orders.
+		if ( 'yes' === get_option( 'fwa_wc_admin_order_alert', 'no' ) ) {
+			$admin_phone = get_option( 'fwa_admin_alert_phone', '' );
+			if ( ! empty( $admin_phone ) ) {
+				$admin_content = $this->resolve_template(
+					'[Admin] New order #{order_id} by {customer_name} — {order_total} ({order_status})',
+					$data
+				);
+				$this->message_sender->send( array(
+					'to'      => $admin_phone,
+					'type'    => 'text',
+					'content' => $admin_content,
+				) );
+			}
 		}
 	}
 

@@ -29,6 +29,7 @@ class FWA_Admin_AJAX {
 			// Instances.
 			'fwa_get_instances',
 			'fwa_create_instance',
+			'fwa_save_instance',
 			'fwa_delete_instance',
 			'fwa_connect_instance',
 			'fwa_disconnect_instance',
@@ -164,6 +165,41 @@ class FWA_Admin_AJAX {
 	}
 
 	/**
+	 * Handle saving (create or update) an instance from the Instances page form.
+	 *
+	 * @since 1.1.0
+	 */
+	public function handle_save_instance() {
+		$this->verify_request();
+
+		$db_id = isset( $_POST['instance_db_id'] ) ? absint( $_POST['instance_db_id'] ) : 0;
+
+		$args = array(
+			'instance_id'  => isset( $_POST['instance_id'] ) ? sanitize_text_field( wp_unslash( $_POST['instance_id'] ) ) : '',
+			'name'         => isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '',
+			'access_token' => isset( $_POST['access_token'] ) ? sanitize_text_field( wp_unslash( $_POST['access_token'] ) ) : '',
+			'phone_number' => isset( $_POST['phone_number'] ) ? sanitize_text_field( wp_unslash( $_POST['phone_number'] ) ) : '',
+		);
+
+		$manager = new FWA_Instance_Manager();
+
+		if ( $db_id ) {
+			$result = $manager->update( $db_id, $args );
+		} else {
+			$result = $manager->create( $args );
+		}
+
+		if ( is_wp_error( $result ) ) {
+			wp_send_json_error( array( 'message' => $result->get_error_message() ) );
+		}
+
+		wp_send_json_success( array(
+			'id'      => $db_id ? $db_id : $result,
+			'message' => __( 'Instance saved.', 'flexi-whatsapp-automation' ),
+		) );
+	}
+
+	/**
 	 * Handle deleting an instance.
 	 *
 	 * @since 1.0.0
@@ -280,8 +316,8 @@ class FWA_Admin_AJAX {
 			wp_send_json_error( array( 'message' => __( 'Instance not found.', 'flexi-whatsapp-automation' ) ) );
 		}
 
-		$api    = new FWA_API_Client();
-		$result = $api->get_qr_code( $instance->instance_id );
+		$api    = new FWA_API_Client( $instance->instance_id, $instance->access_token );
+		$result = $api->getQRCode( $instance->instance_id );
 
 		if ( is_wp_error( $result ) ) {
 			wp_send_json_error( array( 'message' => $result->get_error_message() ) );
@@ -984,6 +1020,36 @@ class FWA_Admin_AJAX {
 			update_option( $key, $value );
 		}
 
+		// WooCommerce per-status notification settings.
+		if ( isset( $_POST['fwa_wc_notifications'] ) && is_array( $_POST['fwa_wc_notifications'] ) ) {
+			$wc_raw            = wp_unslash( $_POST['fwa_wc_notifications'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+			$allowed_statuses  = array( 'processing', 'completed', 'on-hold', 'cancelled', 'refunded', 'failed' );
+			$wc_notifications  = array();
+
+			foreach ( $allowed_statuses as $status_key ) {
+				if ( isset( $wc_raw[ $status_key ] ) && is_array( $wc_raw[ $status_key ] ) ) {
+					$wc_notifications[ $status_key ] = array(
+						'enabled' => ! empty( $wc_raw[ $status_key ]['enabled'] ),
+						'message' => isset( $wc_raw[ $status_key ]['message'] ) ? sanitize_textarea_field( $wc_raw[ $status_key ]['message'] ) : '',
+					);
+				} else {
+					$wc_notifications[ $status_key ] = array(
+						'enabled' => false,
+						'message' => '',
+					);
+				}
+			}
+
+			update_option( 'fwa_wc_notifications', $wc_notifications );
+		}
+
+		// WooCommerce admin order alert toggle.
+		if ( isset( $_POST['fwa_wc_admin_order_alert'] ) ) {
+			update_option( 'fwa_wc_admin_order_alert', 'yes' );
+		} elseif ( isset( $_POST['tab'] ) && 'woocommerce' === sanitize_text_field( wp_unslash( $_POST['tab'] ) ) ) {
+			update_option( 'fwa_wc_admin_order_alert', 'no' );
+		}
+
 		wp_send_json_success( array( 'message' => __( 'Settings saved successfully.', 'flexi-whatsapp-automation' ) ) );
 	}
 
@@ -1085,7 +1151,7 @@ class FWA_Admin_AJAX {
 			wp_send_json_error( array( 'message' => __( 'Instance not found.', 'flexi-whatsapp-automation' ) ) );
 		}
 
-		$status = isset( $instance['status'] ) ? $instance['status'] : 'disconnected';
+		$status = isset( $instance->status ) ? $instance->status : 'disconnected';
 
 		wp_send_json_success( array( 'status' => $status ) );
 	}
