@@ -2,14 +2,14 @@
  * Flexi WhatsApp Automation – Onboarding Wizard JavaScript
  *
  * New 5-step flow:
- *  Step 1 – API Configuration  (URL + token → save)
+ *  Step 1 – API Configuration  (URL + token → real connection test)
  *  Step 2 – Connect WhatsApp   (create instance + QR scan)
  *  Step 3 – Webhook & Active   (copy webhook URL, set secret, pick active instance)
  *  Step 4 – Configure          (feature toggles + quick-start rules)
  *  Step 5 – Test & Finish      (send test message + summary)
  *
  * @package Flexi_WhatsApp_Automation
- * @since   1.0.0
+ * @since   1.2.0
  */
 
 /* global jQuery, fwa_admin */
@@ -20,7 +20,7 @@
 	var Wizard = {
 		currentStep: 1,
 		totalSteps: 5,
-		apiSaved: false,
+		apiVerified: false,
 		instanceCreated: false,
 		instanceId: null,
 		qrTimer: null,
@@ -43,9 +43,9 @@
 				self.skipWizard();
 			});
 
-			// Step 1: Save API settings.
+			// Step 1: Save & Check Connection.
 			$('#fwa-ob-save-api').on('click', function () {
-				self.saveAPISettings();
+				self.testAPIConnection();
 			});
 
 			// Step 2: Create instance + QR.
@@ -73,15 +73,29 @@
 			// Allow Enter on API URL / Key fields.
 			$('#fwa-ob-api-url, #fwa-ob-api-key').on('keypress', function (e) {
 				if (e.which === 13) {
-					self.saveAPISettings();
+					self.testAPIConnection();
+				}
+			});
+
+			// Password visibility toggle.
+			$('.fwa-toggle-password').on('click', function () {
+				var targetId = $(this).data('target');
+				var $input = $('#' + targetId);
+				var $icon = $(this).find('.dashicons');
+				if ($input.attr('type') === 'password') {
+					$input.attr('type', 'text');
+					$icon.removeClass('dashicons-visibility').addClass('dashicons-hidden');
+				} else {
+					$input.attr('type', 'password');
+					$icon.removeClass('dashicons-hidden').addClass('dashicons-visibility');
 				}
 			});
 		},
 
 		nextStep: function () {
-			// Gate: Step 1 requires API to be saved first.
-			if (this.currentStep === 1 && !this.apiSaved) {
-				this.showStatus('#fwa-ob-api-status', 'error', 'Please save your API settings before continuing.');
+			// Gate: Step 1 requires API to be verified first.
+			if (this.currentStep === 1 && !this.apiVerified) {
+				this.showStatus('#fwa-ob-api-status', 'error', 'Please verify your API connection before continuing. Click "Save & Check Connection".');
 				return;
 			}
 
@@ -126,8 +140,7 @@
 			$('#fwa-wizard-prev').toggle(step > 1 && step < this.totalSteps);
 			$('#fwa-wizard-next').toggle(step < this.totalSteps);
 
-			// Hide Next on Step 1 until API is saved (enforced in nextStep too).
-			// On Step 2, hide Next until instance is connected or user skips.
+			// Hide Next on Step 2 until instance is connected or user decides to skip.
 			if (step === 2 && !this.instanceCreated) {
 				$('#fwa-wizard-next').toggle(false);
 			}
@@ -138,7 +151,7 @@
 				this.qrTimer = null;
 			}
 
-			// Pre-fill test phone on step 5.
+			// Build summary on step 5.
 			if (step === 5) {
 				this.buildSummary();
 			}
@@ -150,41 +163,62 @@
 		},
 
 		/* =================================================================
-		   Step 1: API Configuration
+		   Step 1: API Configuration – Real Connection Test
 		   ================================================================= */
 
-		saveAPISettings: function () {
+		testAPIConnection: function () {
 			var self = this;
 			var url = $('#fwa-ob-api-url').val().trim().replace(/\/+$/, '');
 			var key = $('#fwa-ob-api-key').val().trim();
 
-			if (!url || !key) {
-				this.showStatus('#fwa-ob-api-status', 'error', 'Please enter both the API Base URL and the API Key.');
+			if (!url) {
+				this.showStatus('#fwa-ob-api-status', 'error', 'Please enter the API Base URL.');
+				$('#fwa-ob-api-url').focus();
+				return;
+			}
+
+			if (!key) {
+				this.showStatus('#fwa-ob-api-status', 'error', 'Please enter the API Key.');
+				$('#fwa-ob-api-key').focus();
+				return;
+			}
+
+			// Basic URL format validation.
+			try {
+				new URL(url);
+			} catch (e) {
+				this.showStatus('#fwa-ob-api-status', 'error', 'The API Base URL is not a valid URL. Please check the format (e.g., https://api.example.com).');
+				$('#fwa-ob-api-url').focus();
 				return;
 			}
 
 			var $btn = $('#fwa-ob-save-api');
-			$btn.prop('disabled', true).text('Saving…');
-			this.showStatus('#fwa-ob-api-status', 'loading', 'Saving API settings…');
+			$btn.prop('disabled', true);
+			$btn.find('.dashicons').removeClass('dashicons-cloud').addClass('dashicons-update fwa-spin');
+			self.setBtnText($btn, 'Testing Connection…');
+			this.showStatus('#fwa-ob-api-status', 'loading', 'Connecting to API server… This may take a few seconds.');
 
 			$.post(fwa_admin.ajax_url, {
-				action: 'fwa_save_settings',
+				action: 'fwa_test_api_connection',
 				nonce: fwa_admin.nonce,
-				tab: 'api',
-				fwa_api_base_url: url,
-				fwa_api_global_token: key
+				api_url: url,
+				api_key: key
 			}, function (r) {
 				if (r.success) {
-					self.apiSaved = true;
-					self.showStatus('#fwa-ob-api-status', 'success', 'API settings saved. You can now create your WhatsApp instance.');
+					self.apiVerified = true;
+					self.showStatus('#fwa-ob-api-status', 'success', r.data.message);
 					$('#fwa-wizard-next').show();
 				} else {
-					self.showStatus('#fwa-ob-api-status', 'error', r.data ? r.data.message : 'Failed to save API settings.');
+					self.apiVerified = false;
+					self.showStatus('#fwa-ob-api-status', 'error', r.data ? r.data.message : 'Connection test failed. Please check your credentials.');
 				}
 			}).fail(function () {
-				self.showStatus('#fwa-ob-api-status', 'error', 'Network error. Please try again.');
+				self.apiVerified = false;
+				self.showStatus('#fwa-ob-api-status', 'error', 'Network error. Could not reach WordPress. Please check your internet connection and try again.');
 			}).always(function () {
-				$btn.prop('disabled', false).text('Save & Continue');
+				$btn.prop('disabled', false);
+				$btn.find('.dashicons').removeClass('dashicons-update fwa-spin').addClass('dashicons-cloud');
+				self.setBtnText($btn, 'Save & Check Connection');
 			});
 		},
 
@@ -202,8 +236,10 @@
 				$('#fwa-ob-instance-name').val(name);
 			}
 
-			$btn.prop('disabled', true).text('Connecting…');
-			this.showStatus('#fwa-ob-connection-status', 'loading', 'Creating instance…');
+			$btn.prop('disabled', true);
+			$btn.find('.dashicons').removeClass('dashicons-admin-links').addClass('dashicons-update fwa-spin');
+			self.setBtnText($btn, 'Connecting…');
+			this.showStatus('#fwa-ob-connection-status', 'loading', 'Creating instance and requesting QR code…');
 
 			$.post(fwa_admin.ajax_url, {
 				action: 'fwa_create_instance',
@@ -220,12 +256,14 @@
 					$('#fwa-wizard-next').show();
 					self.loadQR();
 				} else {
-					self.showStatus('#fwa-ob-connection-status', 'error', r.data ? r.data.message : 'Failed to create instance.');
+					self.showStatus('#fwa-ob-connection-status', 'error', r.data ? r.data.message : 'Failed to create instance. Please check your API configuration.');
 				}
 			}).fail(function () {
-				self.showStatus('#fwa-ob-connection-status', 'error', 'Request failed. Check your network.');
+				self.showStatus('#fwa-ob-connection-status', 'error', 'Request failed. Please check your network connection.');
 			}).always(function () {
-				$btn.prop('disabled', false).text('Connect WhatsApp');
+				$btn.prop('disabled', false);
+				$btn.find('.dashicons').removeClass('dashicons-update fwa-spin').addClass('dashicons-admin-links');
+				self.setBtnText($btn, 'Connect WhatsApp');
 			});
 		},
 
@@ -235,7 +273,7 @@
 				return;
 			}
 
-			$('#fwa-ob-qr-area').html('<p>Loading QR code…</p>');
+			$('#fwa-ob-qr-area').html('<div class="fwa-loading-state"><span class="spinner is-active"></span><p>Loading QR code…</p></div>');
 
 			$.post(fwa_admin.ajax_url, {
 				action: 'fwa_get_qr_code',
@@ -243,12 +281,31 @@
 				id: self.instanceId
 			}, function (r) {
 				if (r.success && r.data.qr) {
-					$('#fwa-ob-qr-area').html('<img src="' + r.data.qr + '" alt="QR Code" /><br><button type="button" class="button" id="fwa-ob-refresh-qr">Refresh QR</button>');
+					var src = r.data.qr;
+					if (!src.startsWith('data:') && !src.startsWith('http')) {
+						src = 'data:image/png;base64,' + src;
+					}
+					$('#fwa-ob-qr-area').html(
+						'<div class="fwa-qr-container">' +
+						'<img src="' + src + '" alt="QR Code" class="fwa-qr-image" />' +
+						'<p class="description">Scan this QR code with WhatsApp to link your device.</p>' +
+						'<button type="button" class="button" id="fwa-ob-refresh-qr"><span class="dashicons dashicons-image-rotate"></span> Refresh QR</button>' +
+						'</div>'
+					);
 					$('#fwa-ob-refresh-qr').on('click', function () {
 						self.loadQR();
 					});
 				} else {
-					$('#fwa-ob-qr-area').html('<p>' + (r.data ? r.data.message : 'QR code not available yet. Try refreshing.') + '</p>');
+					$('#fwa-ob-qr-area').html(
+						'<div class="fwa-empty-state">' +
+						'<span class="dashicons dashicons-warning"></span>' +
+						'<p>' + (r.data ? r.data.message : 'QR code not available yet.') + '</p>' +
+						'<button type="button" class="button" id="fwa-ob-refresh-qr"><span class="dashicons dashicons-image-rotate"></span> Try Again</button>' +
+						'</div>'
+					);
+					$('#fwa-ob-refresh-qr').on('click', function () {
+						self.loadQR();
+					});
 				}
 			});
 
@@ -272,8 +329,13 @@
 				id: self.instanceId
 			}, function (r) {
 				if (r.success && r.data.status === 'connected') {
-					self.showStatus('#fwa-ob-connection-status', 'success', 'WhatsApp connected successfully!');
-					$('#fwa-ob-qr-area').html('<p class="fwa-text-success"><span class="dashicons dashicons-yes-alt"></span> Connected</p>');
+					self.showStatus('#fwa-ob-connection-status', 'success', 'WhatsApp connected successfully! Your device is linked.');
+					$('#fwa-ob-qr-area').html(
+						'<div class="fwa-success-state">' +
+						'<span class="dashicons dashicons-yes-alt"></span>' +
+						'<p>Connected and ready!</p>' +
+						'</div>'
+					);
 					if (self.qrTimer) {
 						clearInterval(self.qrTimer);
 						self.qrTimer = null;
@@ -288,15 +350,27 @@
 
 		copyWebhookURL: function () {
 			var $field = $('#fwa-ob-webhook-url');
-			$field[0].select();
-			try {
-				document.execCommand('copy');
-				$('#fwa-ob-copy-webhook').text('Copied!');
-				setTimeout(function () {
-					$('#fwa-ob-copy-webhook').text('Copy');
-				}, 2000);
-			} catch (e) {
-				// Clipboard API not available — the user can copy manually.
+			var text = $field.val();
+			var $btn = $('#fwa-ob-copy-webhook');
+
+			if (navigator.clipboard && navigator.clipboard.writeText) {
+				navigator.clipboard.writeText(text).then(function () {
+					$btn.html('<span class="dashicons dashicons-yes"></span> Copied!');
+					setTimeout(function () {
+						$btn.html('<span class="dashicons dashicons-clipboard"></span> Copy');
+					}, 2000);
+				});
+			} else {
+				$field[0].select();
+				try {
+					document.execCommand('copy');
+					$btn.html('<span class="dashicons dashicons-yes"></span> Copied!');
+					setTimeout(function () {
+						$btn.html('<span class="dashicons dashicons-clipboard"></span> Copy');
+					}, 2000);
+				} catch (e) {
+					// Clipboard API not available — the user can copy manually.
+				}
 			}
 		},
 
@@ -305,7 +379,8 @@
 			var secret = $('#fwa-ob-webhook-secret').val().trim();
 
 			var $btn = $('#fwa-ob-save-webhook');
-			$btn.prop('disabled', true).text('Saving…');
+			$btn.prop('disabled', true);
+			$btn.find('.dashicons').removeClass('dashicons-saved').addClass('dashicons-update fwa-spin');
 			this.showStatus('#fwa-ob-webhook-status', 'loading', 'Saving webhook settings…');
 
 			$.post(fwa_admin.ajax_url, {
@@ -315,25 +390,26 @@
 				fwa_webhook_secret: secret
 			}, function (r) {
 				if (r.success) {
-					var msg = 'Webhook settings saved.';
+					var msg = 'Webhook settings saved successfully.';
 					if (!secret) {
-						msg += ' Warning: No webhook secret set — any request to the webhook endpoint will be accepted.';
+						msg += ' ⚠️ No webhook secret set — any request to the webhook endpoint will be accepted. Consider adding one for production use.';
 					}
-					self.showStatus('#fwa-ob-webhook-status', 'success', msg);
+					self.showStatus('#fwa-ob-webhook-status', r.success && secret ? 'success' : 'warning', msg);
 				} else {
-					self.showStatus('#fwa-ob-webhook-status', 'error', r.data ? r.data.message : 'Failed to save.');
+					self.showStatus('#fwa-ob-webhook-status', 'error', r.data ? r.data.message : 'Failed to save webhook settings.');
 				}
 			}).fail(function () {
 				self.showStatus('#fwa-ob-webhook-status', 'error', 'Network error. Please try again.');
 			}).always(function () {
-				$btn.prop('disabled', false).text('Save Webhook Settings');
+				$btn.prop('disabled', false);
+				$btn.find('.dashicons').removeClass('dashicons-update fwa-spin').addClass('dashicons-saved');
 			});
 		},
 
 		loadInstancePicker: function () {
 			var self = this;
 			var $picker = $('#fwa-ob-instance-picker');
-			$picker.html('<p style="color:#999;">Loading instances…</p>');
+			$picker.html('<div class="fwa-loading-state"><span class="spinner is-active"></span><p>Loading instances…</p></div>');
 
 			$.post(fwa_admin.ajax_url, {
 				action: 'fwa_get_instances',
@@ -341,40 +417,52 @@
 			}, function (r) {
 				var instances = (r.success && r.data && r.data.instances) ? r.data.instances : [];
 				if (!instances.length) {
-					$picker.html('<p style="color:#999;">No instances found. Complete Step 2 to create one.</p>');
+					$picker.html(
+						'<div class="fwa-empty-state">' +
+						'<span class="dashicons dashicons-info-outline"></span>' +
+						'<p>No instances found. Complete Step 2 to create one, or skip if you plan to set up later.</p>' +
+						'</div>'
+					);
 					return;
 				}
 
-				var html = '<table class="widefat striped" style="margin-top:8px;"><thead><tr><th>Active</th><th>Name</th><th>Status</th></tr></thead><tbody>';
+				var html = '<table class="widefat striped fwa-compact-table"><thead><tr><th style="width:40px;">Active</th><th>Name</th><th>Status</th></tr></thead><tbody>';
 				$.each(instances, function (i, inst) {
 					var isActive = parseInt(inst.is_active, 10) === 1;
+					var statusClass = 'fwa-badge fwa-badge-' + (inst.status || 'disconnected');
 					html += '<tr>' +
 						'<td><input type="radio" name="fwa-ob-active-instance" value="' + inst.id + '"' + (isActive ? ' checked' : '') + '></td>' +
 						'<td>' + $('<span>').text(inst.name || '').html() + '</td>' +
-						'<td>' + $('<span>').text(inst.status || '').html() + '</td>' +
+						'<td><span class="' + statusClass + '">' + $('<span>').text(inst.status || '').html() + '</span></td>' +
 						'</tr>';
 				});
 				html += '</tbody></table>';
-				html += '<button type="button" class="button button-primary" id="fwa-ob-set-active" style="margin-top:10px;">Set as Active</button>';
+				html += '<div class="fwa-form-actions" style="margin-top:12px;"><button type="button" class="button button-primary" id="fwa-ob-set-active"><span class="dashicons dashicons-star-filled"></span> Set as Active</button></div>';
 				$picker.html(html);
 
 				$('#fwa-ob-set-active').on('click', function () {
 					var selectedId = $('input[name="fwa-ob-active-instance"]:checked').val();
 					if (!selectedId) {
-						self.showStatus('#fwa-ob-active-status', 'error', 'Please select an instance.');
+						self.showStatus('#fwa-ob-active-status', 'error', 'Please select an instance from the list.');
 						return;
 					}
 					self.setActiveInstance(selectedId);
 				});
 			}).fail(function () {
-				$picker.html('<p style="color:#dc3232;">Failed to load instances. Please try again.</p>');
+				$picker.html(
+					'<div class="fwa-empty-state fwa-empty-state-error">' +
+					'<span class="dashicons dashicons-warning"></span>' +
+					'<p>Failed to load instances. Please check your connection and try again.</p>' +
+					'</div>'
+				);
 			});
 		},
 
 		setActiveInstance: function (instanceId) {
 			var self = this;
 			var $btn = $('#fwa-ob-set-active');
-			$btn.prop('disabled', true).text('Saving…');
+			$btn.prop('disabled', true);
+			$btn.find('.dashicons').removeClass('dashicons-star-filled').addClass('dashicons-update fwa-spin');
 			this.showStatus('#fwa-ob-active-status', 'loading', 'Setting active instance…');
 
 			$.post(fwa_admin.ajax_url, {
@@ -390,7 +478,8 @@
 			}).fail(function () {
 				self.showStatus('#fwa-ob-active-status', 'error', 'Network error. Please try again.');
 			}).always(function () {
-				$btn.prop('disabled', false).text('Set as Active');
+				$btn.prop('disabled', false);
+				$btn.find('.dashicons').removeClass('dashicons-update fwa-spin').addClass('dashicons-star-filled');
 			});
 		},
 
@@ -455,42 +544,49 @@
 
 		buildSummary: function () {
 			var items = [];
-			if (this.apiSaved) {
-				items.push('✅ API credentials saved');
+			if (this.apiVerified) {
+				items.push({ icon: '✅', text: 'API connection verified and credentials saved', type: 'success' });
+			} else {
+				items.push({ icon: '⚠️', text: 'API not configured — set up from Settings → API Configuration', type: 'warning' });
 			}
 			if (this.instanceCreated) {
-				items.push('✅ WhatsApp instance created & connected');
+				items.push({ icon: '✅', text: 'WhatsApp instance created', type: 'success' });
+			} else {
+				items.push({ icon: '⚠️', text: 'No WhatsApp instance — create one from Instances page', type: 'warning' });
 			}
 			var secret = $('#fwa-ob-webhook-secret').val().trim();
 			if (secret) {
-				items.push('✅ Webhook secret configured');
+				items.push({ icon: '✅', text: 'Webhook secret configured', type: 'success' });
 			} else {
-				items.push('⚠️ Webhook secret not set (recommended for security)');
+				items.push({ icon: '⚠️', text: 'Webhook secret not set (recommended for security)', type: 'warning' });
 			}
 			if ($('#fwa-ob-enable-automation').is(':checked')) {
-				items.push('✅ Automation enabled');
+				items.push({ icon: '✅', text: 'Automation enabled', type: 'success' });
 			}
 			if ($('#fwa-ob-enable-logging').is(':checked')) {
-				items.push('✅ Logging enabled');
+				items.push({ icon: '✅', text: 'Logging enabled', type: 'success' });
 			}
 			if ($('#fwa-ob-enable-campaigns').is(':checked')) {
-				items.push('✅ Campaigns enabled');
+				items.push({ icon: '✅', text: 'Campaigns enabled', type: 'success' });
 			}
 			if ($('#fwa-ob-auto-woo').is(':checked')) {
-				items.push('✅ WooCommerce order notification rule');
+				items.push({ icon: '✅', text: 'WooCommerce order notification rule added', type: 'success' });
 			}
 			if ($('#fwa-ob-auto-welcome').is(':checked')) {
-				items.push('✅ Welcome message rule');
+				items.push({ icon: '✅', text: 'Welcome message rule added', type: 'success' });
 			}
 
-			var html = '<ul>';
+			var html = '<div class="fwa-summary-list">';
 			$.each(items, function (i, item) {
-				html += '<li>' + item + '</li>';
+				html += '<div class="fwa-summary-item fwa-summary-' + item.type + '">' +
+					'<span class="fwa-summary-icon">' + item.icon + '</span>' +
+					'<span>' + item.text + '</span>' +
+					'</div>';
 			});
 			if (items.length === 0) {
-				html += '<li>No items configured. You can set up everything from the dashboard.</li>';
+				html += '<div class="fwa-summary-item fwa-summary-warning"><span class="fwa-summary-icon">ℹ️</span><span>No items configured. You can set up everything from the dashboard.</span></div>';
 			}
-			html += '</ul>';
+			html += '</div>';
 
 			$('#fwa-ob-summary').html(html);
 		},
@@ -500,29 +596,35 @@
 			var phone = $('#fwa-ob-test-phone').val().trim();
 
 			if (!phone) {
-				this.showStatus('#fwa-ob-test-result', 'error', 'Enter a phone number.');
+				this.showStatus('#fwa-ob-test-result', 'error', 'Enter a phone number in E.164 format (e.g., +1234567890).');
+				$('#fwa-ob-test-phone').focus();
 				return;
 			}
 
-			$('#fwa-ob-send-test').prop('disabled', true).text('Sending…');
+			var $btn = $('#fwa-ob-send-test');
+			$btn.prop('disabled', true);
+			$btn.find('.dashicons').removeClass('dashicons-email').addClass('dashicons-update fwa-spin');
+			self.setBtnText($btn, 'Sending…');
 
 			$.post(fwa_admin.ajax_url, {
 				action: 'fwa_send_message',
 				nonce: fwa_admin.nonce,
 				phone: phone,
-				message: 'Hello! This is a test message from Flexi WhatsApp Automation.',
+				message: 'Hello! This is a test message from Flexi WhatsApp Automation. ✅',
 				message_type: 'text',
 				instance_id: ''
 			}, function (r) {
 				if (r.success) {
-					self.showStatus('#fwa-ob-test-result', 'success', 'Test message sent!');
+					self.showStatus('#fwa-ob-test-result', 'success', 'Test message sent successfully! Check your WhatsApp.');
 				} else {
-					self.showStatus('#fwa-ob-test-result', 'error', r.data ? r.data.message : 'Failed to send.');
+					self.showStatus('#fwa-ob-test-result', 'error', r.data ? r.data.message : 'Failed to send test message. Please check your instance connection.');
 				}
 			}).fail(function () {
-				self.showStatus('#fwa-ob-test-result', 'error', 'Request failed.');
+				self.showStatus('#fwa-ob-test-result', 'error', 'Request failed. Please check your connection.');
 			}).always(function () {
-				$('#fwa-ob-send-test').prop('disabled', false).text('Send Test');
+				$btn.prop('disabled', false);
+				$btn.find('.dashicons').removeClass('dashicons-update fwa-spin').addClass('dashicons-email');
+				self.setBtnText($btn, 'Send Test');
 			});
 		},
 
@@ -531,17 +633,21 @@
 		   ================================================================= */
 
 		skipWizard: function () {
-			if (!confirm('Skip the setup wizard? You can configure everything manually from Settings.')) {
+			if (!confirm('Skip the setup wizard?\n\nYou can configure everything manually from Settings. The system will be marked as "Not Configured" until you complete the API setup.')) {
 				return;
 			}
-			this.completeOnboarding(fwa_admin.dashboard_url);
+			this.completeOnboarding(fwa_admin.dashboard_url, true);
 		},
 
-		completeOnboarding: function (redirectUrl) {
-			$.post(fwa_admin.ajax_url, {
+		completeOnboarding: function (redirectUrl, skipped) {
+			var data = {
 				action: 'fwa_complete_onboarding',
 				_ajax_nonce: fwa_admin.nonce
-			}, function () {
+			};
+			if (skipped) {
+				data.skipped = 'yes';
+			}
+			$.post(fwa_admin.ajax_url, data, function () {
 				window.location.href = redirectUrl || fwa_admin.dashboard_url;
 			}).fail(function () {
 				window.location.href = redirectUrl || fwa_admin.dashboard_url;
@@ -549,22 +655,35 @@
 		},
 
 		showStatus: function (selector, type, message) {
-			var icon = '';
+			var iconMap = {
+				success: '<span class="dashicons dashicons-yes-alt"></span> ',
+				error: '<span class="dashicons dashicons-dismiss"></span> ',
+				warning: '<span class="dashicons dashicons-warning"></span> ',
+				loading: '<span class="spinner is-active" style="float:none;margin:0 4px 0 0;"></span> '
+			};
+			var icon = iconMap[type] || '';
 			var cls = 'fwa-wizard-status-' + type;
 
-			switch (type) {
-				case 'success':
-					icon = '<span class="dashicons dashicons-yes-alt"></span> ';
-					break;
-				case 'error':
-					icon = '<span class="dashicons dashicons-dismiss"></span> ';
-					break;
-				case 'loading':
-					icon = '<span class="spinner is-active"></span> ';
-					break;
-			}
+			$(selector).html('<div class="' + cls + '">' + icon + '<span>' + message + '</span></div>');
+		},
 
-			$(selector).html('<span class="' + cls + '">' + icon + message + '</span>');
+		/**
+		 * Safely update a button's text label while keeping its icon.
+		 *
+		 * Finds the last text node inside the button and replaces it.
+		 * Falls back to updating the full button text if no child text node exists.
+		 */
+		setBtnText: function ($btn, text) {
+			var found = false;
+			$btn.contents().each(function () {
+				if (this.nodeType === 3 && this.textContent.trim().length > 0) {
+					this.textContent = ' ' + text;
+					found = true;
+				}
+			});
+			if (!found) {
+				$btn.append(' ' + text);
+			}
 		}
 	};
 

@@ -17,11 +17,17 @@ if ( ! defined( 'ABSPATH' ) ) {
             <table class="form-table">
                 <tr>
                     <th><label for="fwa-camp-name"><?php echo esc_html__( 'Name', 'flexi-whatsapp-automation' ); ?></label></th>
-                    <td><input type="text" id="fwa-camp-name" name="name" class="regular-text" required /></td>
+                    <td>
+                        <input type="text" id="fwa-camp-name" name="name" class="regular-text" required placeholder="<?php esc_attr_e( 'e.g., Welcome Campaign, Black Friday Sale', 'flexi-whatsapp-automation' ); ?>" />
+                        <p class="description"><?php echo esc_html__( 'A descriptive name to identify this campaign in the list.', 'flexi-whatsapp-automation' ); ?></p>
+                    </td>
                 </tr>
                 <tr>
                     <th><label for="fwa-camp-instance"><?php echo esc_html__( 'Instance', 'flexi-whatsapp-automation' ); ?></label></th>
-                    <td><select id="fwa-camp-instance" name="instance_id" class="fwa-instance-dropdown"></select></td>
+                    <td>
+                        <select id="fwa-camp-instance" name="instance_id" class="fwa-instance-dropdown"></select>
+                        <p class="description"><?php echo esc_html__( 'Choose which WhatsApp instance to send this campaign from. Leave as default to use the active instance.', 'flexi-whatsapp-automation' ); ?></p>
+                    </td>
                 </tr>
                 <tr>
                     <th><label for="fwa-camp-type"><?php echo esc_html__( 'Message Type', 'flexi-whatsapp-automation' ); ?></label></th>
@@ -32,15 +38,23 @@ if ( ! defined( 'ABSPATH' ) ) {
                             <option value="document"><?php echo esc_html__( 'Document', 'flexi-whatsapp-automation' ); ?></option>
                             <option value="video"><?php echo esc_html__( 'Video', 'flexi-whatsapp-automation' ); ?></option>
                         </select>
+                        <p class="description"><?php echo esc_html__( 'Text: plain text message. Image/Document/Video: requires a Media URL below.', 'flexi-whatsapp-automation' ); ?></p>
                     </td>
                 </tr>
                 <tr>
                     <th><label for="fwa-camp-content"><?php echo esc_html__( 'Content', 'flexi-whatsapp-automation' ); ?></label></th>
-                    <td><textarea id="fwa-camp-content" name="content" rows="5" class="large-text" required></textarea></td>
+                    <td>
+                        <textarea id="fwa-camp-content" name="content" rows="5" class="large-text" required placeholder="<?php esc_attr_e( 'Hi {name}, check out our latest offers at {store_name}!', 'flexi-whatsapp-automation' ); ?>"></textarea>
+                        <p class="description"><?php echo esc_html__( 'The message to send. For image/document/video types, this becomes the caption.', 'flexi-whatsapp-automation' ); ?>
+                        <br><strong><?php echo esc_html__( 'Placeholders:', 'flexi-whatsapp-automation' ); ?></strong> <code>{name}</code>, <code>{phone}</code>, <code>{email}</code>, <code>{store_name}</code></p>
+                    </td>
                 </tr>
                 <tr>
                     <th><label for="fwa-camp-media"><?php echo esc_html__( 'Media URL', 'flexi-whatsapp-automation' ); ?></label></th>
-                    <td><input type="text" id="fwa-camp-media" name="media_url" class="regular-text" /></td>
+                    <td>
+                        <input type="text" id="fwa-camp-media" name="media_url" class="regular-text" placeholder="<?php esc_attr_e( 'https://example.com/promo-image.jpg', 'flexi-whatsapp-automation' ); ?>" />
+                        <p class="description"><?php echo esc_html__( 'Required for Image, Document, and Video types. Must be a publicly accessible URL.', 'flexi-whatsapp-automation' ); ?></p>
+                    </td>
                 </tr>
                 <tr>
                     <th><label for="fwa-camp-recipients"><?php echo esc_html__( 'Recipients Filter', 'flexi-whatsapp-automation' ); ?></label></th>
@@ -50,7 +64,8 @@ if ( ! defined( 'ABSPATH' ) ) {
                             <option value="tags"><?php echo esc_html__( 'By Tags', 'flexi-whatsapp-automation' ); ?></option>
                             <option value="specific"><?php echo esc_html__( 'Specific Numbers', 'flexi-whatsapp-automation' ); ?></option>
                         </select>
-                        <input type="text" name="recipients_value" class="regular-text" placeholder="<?php echo esc_attr__( 'Tags or phone numbers (comma-separated)', 'flexi-whatsapp-automation' ); ?>" />
+                        <input type="text" name="recipients_value" class="regular-text" placeholder="<?php echo esc_attr__( 'e.g., vip,customer or +1234567890,+0987654321', 'flexi-whatsapp-automation' ); ?>" />
+                        <p class="description"><?php echo esc_html__( 'All Contacts: sends to every contact in your list. By Tags: comma-separated tag names. Specific Numbers: comma-separated phone numbers.', 'flexi-whatsapp-automation' ); ?></p>
                     </td>
                 </tr>
                 <tr>

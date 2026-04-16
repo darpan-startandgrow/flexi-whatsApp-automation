@@ -68,6 +68,7 @@ class FWA_Admin_AJAX {
 			'fwa_save_settings',
 			// Onboarding.
 			'fwa_complete_onboarding',
+			'fwa_test_api_connection',
 			// OTP.
 			'fwa_send_otp',
 			'fwa_verify_otp',
@@ -1078,8 +1079,165 @@ class FWA_Admin_AJAX {
 			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'flexi-whatsapp-automation' ) ) );
 		}
 
+		$skipped = isset( $_POST['skipped'] ) && 'yes' === sanitize_text_field( wp_unslash( $_POST['skipped'] ) );
+
+		// Always mark setup as complete to prevent re-triggering on reactivation.
+		update_option( 'fwa_setup_complete', 'yes' );
+		// Keep legacy flag for backwards compat.
 		update_option( 'fwa_onboarding_complete', 'yes' );
+
+		if ( $skipped ) {
+			update_option( 'fwa_api_configured', 'no' );
+		}
+
 		wp_send_json_success( array( 'message' => __( 'Onboarding complete.', 'flexi-whatsapp-automation' ) ) );
+	}
+
+	/**
+	 * Test API connection by validating URL reachability and API key.
+	 *
+	 * Performs a real HTTP request to verify the API is accessible and responds
+	 * correctly. Prevents false success states by only confirming valid connections.
+	 *
+	 * @since 1.2.0
+	 */
+	public function handle_test_api_connection() {
+		$this->verify_request();
+
+		$url = isset( $_POST['api_url'] ) ? esc_url_raw( wp_unslash( $_POST['api_url'] ) ) : '';
+		$key = isset( $_POST['api_key'] ) ? sanitize_text_field( wp_unslash( $_POST['api_key'] ) ) : '';
+
+		if ( empty( $url ) ) {
+			wp_send_json_error( array(
+				'message' => __( 'API Base URL is required.', 'flexi-whatsapp-automation' ),
+				'code'    => 'missing_url',
+			) );
+		}
+
+		if ( empty( $key ) ) {
+			wp_send_json_error( array(
+				'message' => __( 'API Key is required.', 'flexi-whatsapp-automation' ),
+				'code'    => 'missing_key',
+			) );
+		}
+
+		// Validate URL format.
+		if ( ! filter_var( $url, FILTER_VALIDATE_URL ) ) {
+			wp_send_json_error( array(
+				'message' => __( 'The API Base URL is not a valid URL. Please check the format (e.g., https://api.example.com).', 'flexi-whatsapp-automation' ),
+				'code'    => 'invalid_url',
+			) );
+		}
+
+		// Ensure HTTPS or localhost.
+		$parsed = wp_parse_url( $url );
+		$host   = isset( $parsed['host'] ) ? $parsed['host'] : '';
+		$scheme = isset( $parsed['scheme'] ) ? $parsed['scheme'] : '';
+
+		if ( 'https' !== $scheme && 'localhost' !== $host && '127.0.0.1' !== $host ) {
+			wp_send_json_error( array(
+				'message' => __( 'The API Base URL should use HTTPS for security. Only localhost URLs may use HTTP.', 'flexi-whatsapp-automation' ),
+				'code'    => 'insecure_url',
+			) );
+		}
+
+		// Test connection by making a lightweight GET request.
+		$test_url  = untrailingslashit( $url );
+		$response  = wp_remote_get( $test_url, array(
+			'timeout' => 15,
+			'headers' => array(
+				'Authorization' => 'Bearer ' . $key,
+				'Accept'        => 'application/json',
+			),
+			'sslverify' => true,
+		) );
+
+		if ( is_wp_error( $response ) ) {
+			$error_message = $response->get_error_message();
+			$error_code    = $response->get_error_code();
+
+			// Provide actionable messages for common errors.
+			if ( false !== strpos( $error_message, 'cURL error 6' ) || false !== strpos( $error_code, 'http_request_failed' ) ) {
+				wp_send_json_error( array(
+					'message' => sprintf(
+						/* translators: %s: error details */
+						__( 'Could not resolve the API host. Please verify the URL is correct and the server is running. Error: %s', 'flexi-whatsapp-automation' ),
+						$error_message
+					),
+					'code' => 'dns_error',
+				) );
+			}
+
+			if ( false !== strpos( $error_message, 'cURL error 28' ) || false !== strpos( $error_message, 'timed out' ) ) {
+				wp_send_json_error( array(
+					'message' => __( 'Connection timed out. The API server may be down or unreachable. Please check the URL and try again.', 'flexi-whatsapp-automation' ),
+					'code'    => 'timeout',
+				) );
+			}
+
+			if ( false !== strpos( $error_message, 'cURL error 7' ) ) {
+				wp_send_json_error( array(
+					'message' => __( 'Could not connect to the API server. Please verify the server is running and the port is accessible.', 'flexi-whatsapp-automation' ),
+					'code'    => 'connection_refused',
+				) );
+			}
+
+			if ( false !== strpos( $error_message, 'SSL' ) || false !== strpos( $error_message, 'certificate' ) ) {
+				wp_send_json_error( array(
+					'message' => __( 'SSL certificate error. The API server may have an invalid or self-signed certificate.', 'flexi-whatsapp-automation' ),
+					'code'    => 'ssl_error',
+				) );
+			}
+
+			wp_send_json_error( array(
+				'message' => sprintf(
+					/* translators: %s: error details */
+					__( 'Connection failed: %s', 'flexi-whatsapp-automation' ),
+					$error_message
+				),
+				'code' => 'connection_error',
+			) );
+		}
+
+		$http_code = wp_remote_retrieve_response_code( $response );
+
+		if ( 401 === $http_code || 403 === $http_code ) {
+			wp_send_json_error( array(
+				'message' => __( 'Authentication failed. The API key is invalid or does not have permission. Please check your API key.', 'flexi-whatsapp-automation' ),
+				'code'    => 'auth_error',
+			) );
+		}
+
+		if ( $http_code >= 500 ) {
+			wp_send_json_error( array(
+				'message' => sprintf(
+					/* translators: %d: HTTP status code */
+					__( 'The API server returned an error (HTTP %d). Please check if the server is running correctly.', 'flexi-whatsapp-automation' ),
+					$http_code
+				),
+				'code' => 'server_error',
+			) );
+		}
+
+		if ( $http_code < 200 || $http_code >= 400 ) {
+			wp_send_json_error( array(
+				'message' => sprintf(
+					/* translators: %d: HTTP status code */
+					__( 'Unexpected response from API server (HTTP %d). Please verify the URL is correct.', 'flexi-whatsapp-automation' ),
+					$http_code
+				),
+				'code' => 'unexpected_response',
+			) );
+		}
+
+		// Connection successful — save credentials.
+		update_option( 'fwa_api_base_url', untrailingslashit( $url ) );
+		update_option( 'fwa_api_global_token', $key );
+		update_option( 'fwa_api_configured', 'yes' );
+
+		wp_send_json_success( array(
+			'message' => __( 'Connection successful! API server is reachable and credentials are valid.', 'flexi-whatsapp-automation' ),
+		) );
 	}
 
 	// =========================================================================

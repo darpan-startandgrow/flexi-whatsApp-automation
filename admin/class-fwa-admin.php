@@ -57,10 +57,10 @@ class FWA_Admin {
 	 * @since 1.0.0
 	 */
 	public function admin_init() {
-		// Redirect to onboarding on first activation.
+		// Redirect to onboarding on first activation (only if setup is incomplete).
 		if ( get_transient( 'fwa_activation_redirect' ) ) {
 			delete_transient( 'fwa_activation_redirect' );
-			if ( 'yes' !== get_option( 'fwa_onboarding_complete' ) && current_user_can( 'manage_options' ) ) {
+			if ( 'yes' !== get_option( 'fwa_setup_complete' ) && current_user_can( 'manage_options' ) ) {
 				wp_safe_redirect( admin_url( 'admin.php?page=fwa-onboarding' ) );
 				exit;
 			}
