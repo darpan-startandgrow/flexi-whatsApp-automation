@@ -58,9 +58,21 @@ class FWA_Activator {
 		add_option( 'fwa_debug_mode', 'no' );
 		add_option( 'fwa_rate_limit', 20 );
 		add_option( 'fwa_rate_limit_interval', 60 );
+		add_option( 'fwa_default_country_code', '+1' );
+		add_option( 'fwa_enable_automation', 'yes' );
+		add_option( 'fwa_enable_logging', 'yes' );
+		add_option( 'fwa_enable_campaigns', 'yes' );
+		add_option( 'fwa_log_level', 'info' );
+		add_option( 'fwa_log_retention_days', 30 );
+		add_option( 'fwa_campaign_message_delay', 3 );
+		add_option( 'fwa_auto_reconnect', 'yes' );
+		add_option( 'fwa_health_check_interval', 5 );
 
-		// Trigger onboarding redirect on first admin page load.
-		set_transient( 'fwa_activation_redirect', true, 30 );
+		// Trigger onboarding redirect ONLY if setup has not been completed before.
+		// On reactivation after a completed setup, skip the wizard entirely.
+		if ( 'yes' !== get_option( 'fwa_setup_complete' ) ) {
+			set_transient( 'fwa_activation_redirect', true, 30 );
+		}
 	}
 
 	/**

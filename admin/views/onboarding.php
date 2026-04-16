@@ -3,9 +3,9 @@
  * Onboarding wizard view.
  *
  * Correct flow:
- *  Step 1 – API Configuration (URL + token — required before any API call)
+ *  Step 1 – API Configuration (URL + token → real-time connection test)
  *  Step 2 – Connect WhatsApp   (create instance + QR scan)
- *  Step 3 – Webhook & Active   (copy webhook URL, set secret, mark active instance)
+ *  Step 3 – Webhook & Active   (copy webhook URL, set secret, pick active instance)
  *  Step 4 – Configure          (feature toggles + quick-start automation rules)
  *  Step 5 – Test & Finish      (send test message + summary)
  *
@@ -26,7 +26,10 @@ $webhook_url = rest_url( 'fwa/v1/webhook' );
 			<span class="dashicons dashicons-format-chat"></span>
 			<h1><?php esc_html_e( 'Flexi WhatsApp Automation', 'flexi-whatsapp-automation' ); ?></h1>
 		</div>
-		<button type="button" class="button" id="fwa-skip-wizard"><?php esc_html_e( 'Skip Setup', 'flexi-whatsapp-automation' ); ?></button>
+		<button type="button" class="button fwa-btn-skip" id="fwa-skip-wizard">
+			<span class="dashicons dashicons-controls-forward"></span>
+			<?php esc_html_e( 'Skip Setup', 'flexi-whatsapp-automation' ); ?>
+		</button>
 	</div>
 
 	<!-- Step Progress Indicator -->
@@ -67,26 +70,36 @@ $webhook_url = rest_url( 'fwa/v1/webhook' );
 			<div class="fwa-wizard-hero">
 				<span class="dashicons dashicons-admin-network fwa-wizard-hero-icon"></span>
 				<h2><?php esc_html_e( 'API Configuration', 'flexi-whatsapp-automation' ); ?></h2>
-				<p><?php esc_html_e( 'Enter the URL and API key of your WhatsApp session engine. These credentials are required before any instance can be created or connected.', 'flexi-whatsapp-automation' ); ?></p>
+				<p><?php esc_html_e( 'Enter the URL and API key of your WhatsApp session engine. A real-time connection test will verify your credentials before proceeding.', 'flexi-whatsapp-automation' ); ?></p>
 			</div>
 			<div class="fwa-form-card">
-				<div class="fwa-otp-notice">
+				<div class="fwa-info-box">
 					<span class="dashicons dashicons-info-outline"></span>
-					<p><?php esc_html_e( 'If you are using a self-hosted session engine (e.g. WAHA, WA-Multi-Device), paste the base URL here. For a hosted service, enter the URL provided by your provider.', 'flexi-whatsapp-automation' ); ?></p>
+					<div>
+						<p><?php esc_html_e( 'If you are using a self-hosted session engine (e.g. WAHA, WA-Multi-Device), paste the base URL here. For a hosted service, enter the URL provided by your provider.', 'flexi-whatsapp-automation' ); ?></p>
+					</div>
 				</div>
 				<div class="fwa-form-group">
 					<label for="fwa-ob-api-url"><?php esc_html_e( 'API Base URL', 'flexi-whatsapp-automation' ); ?> <span class="fwa-required">*</span></label>
 					<input type="url" id="fwa-ob-api-url" class="regular-text" placeholder="https://api.example.com" value="<?php echo esc_attr( get_option( 'fwa_api_base_url', '' ) ); ?>">
-					<p class="description"><?php esc_html_e( 'Base URL of your WhatsApp API (no trailing slash).', 'flexi-whatsapp-automation' ); ?></p>
+					<p class="description"><?php esc_html_e( 'The full base URL of your WhatsApp API server without a trailing slash. Example: https://waha.myserver.com or https://api.waengine.io', 'flexi-whatsapp-automation' ); ?></p>
 				</div>
 				<div class="fwa-form-group">
 					<label for="fwa-ob-api-key"><?php esc_html_e( 'API Key', 'flexi-whatsapp-automation' ); ?> <span class="fwa-required">*</span></label>
-					<input type="password" id="fwa-ob-api-key" class="regular-text" placeholder="<?php esc_attr_e( 'Enter your API key', 'flexi-whatsapp-automation' ); ?>" value="<?php echo esc_attr( get_option( 'fwa_api_global_token', '' ) ); ?>">
-					<p class="description"><?php esc_html_e( 'Global API authentication key or bearer token.', 'flexi-whatsapp-automation' ); ?></p>
+					<div class="fwa-input-with-toggle">
+						<input type="password" id="fwa-ob-api-key" class="regular-text" placeholder="<?php esc_attr_e( 'e.g. sk_live_abc123def456...', 'flexi-whatsapp-automation' ); ?>" value="<?php echo esc_attr( get_option( 'fwa_api_global_token', '' ) ); ?>">
+						<button type="button" class="button fwa-toggle-password" data-target="fwa-ob-api-key" title="<?php esc_attr_e( 'Toggle visibility', 'flexi-whatsapp-automation' ); ?>">
+							<span class="dashicons dashicons-visibility"></span>
+						</button>
+					</div>
+					<p class="description"><?php esc_html_e( 'Your global API authentication key or bearer token. This is provided by your WhatsApp API service.', 'flexi-whatsapp-automation' ); ?></p>
 				</div>
-				<button type="button" class="button button-primary" id="fwa-ob-save-api">
-					<?php esc_html_e( 'Save & Continue', 'flexi-whatsapp-automation' ); ?>
-				</button>
+				<div class="fwa-form-actions">
+					<button type="button" class="button button-primary button-large" id="fwa-ob-save-api">
+						<span class="dashicons dashicons-cloud"></span>
+						<?php esc_html_e( 'Save & Check Connection', 'flexi-whatsapp-automation' ); ?>
+					</button>
+				</div>
 				<div id="fwa-ob-api-status" class="fwa-wizard-status"></div>
 			</div>
 		</div>
@@ -96,19 +109,28 @@ $webhook_url = rest_url( 'fwa/v1/webhook' );
 		     ===================================================================== -->
 		<div class="fwa-wizard-pane" data-step="2">
 			<div class="fwa-form-card">
-				<h3><?php esc_html_e( 'Connect Your WhatsApp Account', 'flexi-whatsapp-automation' ); ?></h3>
-				<p class="description"><?php esc_html_e( 'Create a WhatsApp instance and scan the QR code with the WhatsApp app on your phone. Make sure you are logged in with the number you want to use for sending messages.', 'flexi-whatsapp-automation' ); ?></p>
-				<div class="fwa-otp-notice">
+				<div class="fwa-card-header">
+					<span class="dashicons dashicons-smartphone fwa-card-icon"></span>
+					<div>
+						<h3><?php esc_html_e( 'Connect Your WhatsApp Account', 'flexi-whatsapp-automation' ); ?></h3>
+						<p class="description"><?php esc_html_e( 'Create a WhatsApp instance and scan the QR code with the WhatsApp app on your phone.', 'flexi-whatsapp-automation' ); ?></p>
+					</div>
+				</div>
+				<div class="fwa-info-box">
 					<span class="dashicons dashicons-info-outline"></span>
-					<p><?php esc_html_e( 'Open WhatsApp → ⋮ Menu → Linked Devices → Link a Device, then scan the QR code below.', 'flexi-whatsapp-automation' ); ?></p>
+					<div>
+						<p><strong><?php esc_html_e( 'How to connect:', 'flexi-whatsapp-automation' ); ?></strong>
+						<?php esc_html_e( 'Open WhatsApp on your phone → Tap ⋮ Menu (three dots) → Linked Devices → Link a Device → Scan the QR code below.', 'flexi-whatsapp-automation' ); ?></p>
+					</div>
 				</div>
 				<div class="fwa-form-group">
 					<label for="fwa-ob-instance-name"><?php esc_html_e( 'Instance Name', 'flexi-whatsapp-automation' ); ?></label>
-					<input type="text" id="fwa-ob-instance-name" class="regular-text" placeholder="<?php esc_attr_e( 'My WhatsApp', 'flexi-whatsapp-automation' ); ?>">
-					<p class="description"><?php esc_html_e( 'A friendly label so you can identify this WhatsApp number.', 'flexi-whatsapp-automation' ); ?></p>
+					<input type="text" id="fwa-ob-instance-name" class="regular-text" value="My WhatsApp" placeholder="<?php esc_attr_e( 'e.g. Support Line, Sales Team', 'flexi-whatsapp-automation' ); ?>">
+					<p class="description"><?php esc_html_e( 'A friendly label to identify this WhatsApp number (e.g., "Support Line" or "Sales Team").', 'flexi-whatsapp-automation' ); ?></p>
 				</div>
-				<div class="fwa-ob-qr-actions">
-					<button type="button" class="button button-primary" id="fwa-ob-create-instance">
+				<div class="fwa-form-actions">
+					<button type="button" class="button button-primary button-large" id="fwa-ob-create-instance">
+						<span class="dashicons dashicons-admin-links"></span>
 						<?php esc_html_e( 'Connect WhatsApp', 'flexi-whatsapp-automation' ); ?>
 					</button>
 				</div>
@@ -122,37 +144,56 @@ $webhook_url = rest_url( 'fwa/v1/webhook' );
 		     ===================================================================== -->
 		<div class="fwa-wizard-pane" data-step="3">
 			<div class="fwa-form-card">
-				<h3><?php esc_html_e( 'Webhook & Active Instance', 'flexi-whatsapp-automation' ); ?></h3>
-				<p class="description"><?php esc_html_e( 'Configure the webhook so your session engine can push incoming messages, delivery receipts, and session status updates to WordPress.', 'flexi-whatsapp-automation' ); ?></p>
+				<div class="fwa-card-header">
+					<span class="dashicons dashicons-rest-api fwa-card-icon"></span>
+					<div>
+						<h3><?php esc_html_e( 'Webhook & Active Instance', 'flexi-whatsapp-automation' ); ?></h3>
+						<p class="description"><?php esc_html_e( 'Configure the webhook so your session engine can push incoming messages, delivery receipts, and session status updates to WordPress.', 'flexi-whatsapp-automation' ); ?></p>
+					</div>
+				</div>
 
 				<!-- Webhook URL -->
 				<div class="fwa-form-group">
 					<label><?php esc_html_e( 'Your Webhook URL', 'flexi-whatsapp-automation' ); ?></label>
-					<div style="display:flex;gap:8px;align-items:center;">
-						<input type="text" id="fwa-ob-webhook-url" class="regular-text" value="<?php echo esc_attr( $webhook_url ); ?>" readonly style="background:#f6f7f7;cursor:text;flex:1;">
-						<button type="button" class="button" id="fwa-ob-copy-webhook"><?php esc_html_e( 'Copy', 'flexi-whatsapp-automation' ); ?></button>
+					<div class="fwa-input-with-action">
+						<input type="text" id="fwa-ob-webhook-url" class="regular-text" value="<?php echo esc_attr( $webhook_url ); ?>" readonly>
+						<button type="button" class="button" id="fwa-ob-copy-webhook">
+							<span class="dashicons dashicons-clipboard"></span>
+							<?php esc_html_e( 'Copy', 'flexi-whatsapp-automation' ); ?>
+						</button>
 					</div>
-					<p class="description"><?php esc_html_e( 'Paste this URL into the "Webhook URL" field of your session engine (WAHA, etc.).', 'flexi-whatsapp-automation' ); ?></p>
+					<p class="description"><?php esc_html_e( 'Copy this URL and paste it into the "Webhook URL" field of your session engine (WAHA, WA-Multi-Device, etc.). This allows the engine to send events to your WordPress site.', 'flexi-whatsapp-automation' ); ?></p>
 				</div>
 
 				<!-- Webhook Secret -->
 				<div class="fwa-form-group">
 					<label for="fwa-ob-webhook-secret"><?php esc_html_e( 'Webhook Secret', 'flexi-whatsapp-automation' ); ?></label>
-					<input type="text" id="fwa-ob-webhook-secret" class="regular-text" placeholder="<?php esc_attr_e( 'Optional but recommended', 'flexi-whatsapp-automation' ); ?>" value="<?php echo esc_attr( get_option( 'fwa_webhook_secret', '' ) ); ?>">
-					<p class="description"><?php esc_html_e( 'Set the same secret in your session engine as the X-Webhook-Secret header value. Leave blank to allow all webhook requests (not recommended for production).', 'flexi-whatsapp-automation' ); ?></p>
+					<input type="text" id="fwa-ob-webhook-secret" class="regular-text" placeholder="<?php esc_attr_e( 'e.g. my-secret-key-123', 'flexi-whatsapp-automation' ); ?>" value="<?php echo esc_attr( get_option( 'fwa_webhook_secret', '' ) ); ?>">
+					<p class="description"><?php esc_html_e( 'Set the same secret in your session engine as the X-Webhook-Secret header value. This ensures only legitimate requests are accepted. Leave blank to accept all requests (not recommended for production).', 'flexi-whatsapp-automation' ); ?></p>
 				</div>
 
-				<button type="button" class="button button-primary" id="fwa-ob-save-webhook">
-					<?php esc_html_e( 'Save Webhook Settings', 'flexi-whatsapp-automation' ); ?>
-				</button>
+				<div class="fwa-form-actions">
+					<button type="button" class="button button-primary" id="fwa-ob-save-webhook">
+						<span class="dashicons dashicons-saved"></span>
+						<?php esc_html_e( 'Save Webhook Settings', 'flexi-whatsapp-automation' ); ?>
+					</button>
+				</div>
 				<div id="fwa-ob-webhook-status" class="fwa-wizard-status"></div>
 
 				<!-- Set Active Instance -->
-				<hr style="margin:24px 0 16px;">
-				<h4><?php esc_html_e( 'Set Active Instance', 'flexi-whatsapp-automation' ); ?></h4>
-				<p class="description"><?php esc_html_e( 'The active instance is used by default for all outgoing messages and automation rules. Select the connected instance you just created.', 'flexi-whatsapp-automation' ); ?></p>
+				<div class="fwa-section-divider"></div>
+				<div class="fwa-card-header">
+					<span class="dashicons dashicons-star-filled fwa-card-icon"></span>
+					<div>
+						<h4><?php esc_html_e( 'Set Active Instance', 'flexi-whatsapp-automation' ); ?></h4>
+						<p class="description"><?php esc_html_e( 'The active instance is used by default for all outgoing messages and automation rules. Select the instance you want to use.', 'flexi-whatsapp-automation' ); ?></p>
+					</div>
+				</div>
 				<div id="fwa-ob-instance-picker">
-					<p style="color:#999;"><?php esc_html_e( 'Loading instances…', 'flexi-whatsapp-automation' ); ?></p>
+					<div class="fwa-loading-state">
+						<span class="spinner is-active"></span>
+						<p><?php esc_html_e( 'Loading instances…', 'flexi-whatsapp-automation' ); ?></p>
+					</div>
 				</div>
 				<div id="fwa-ob-active-status" class="fwa-wizard-status"></div>
 			</div>
@@ -163,46 +204,71 @@ $webhook_url = rest_url( 'fwa/v1/webhook' );
 		     ===================================================================== -->
 		<div class="fwa-wizard-pane" data-step="4">
 			<div class="fwa-form-card">
-				<h3><?php esc_html_e( 'Configure Your Settings', 'flexi-whatsapp-automation' ); ?></h3>
+				<div class="fwa-card-header">
+					<span class="dashicons dashicons-admin-generic fwa-card-icon"></span>
+					<div>
+						<h3><?php esc_html_e( 'Configure Your Settings', 'flexi-whatsapp-automation' ); ?></h3>
+						<p class="description"><?php esc_html_e( 'Choose which features to enable. You can change these anytime from Settings.', 'flexi-whatsapp-automation' ); ?></p>
+					</div>
+				</div>
+
 				<h4><?php esc_html_e( 'Enable Features', 'flexi-whatsapp-automation' ); ?></h4>
 				<div class="fwa-wizard-toggles">
 					<label class="fwa-toggle-label">
 						<input type="checkbox" id="fwa-ob-enable-automation" checked>
-						<span><?php esc_html_e( 'Automation (trigger messages on events)', 'flexi-whatsapp-automation' ); ?></span>
+						<span class="fwa-toggle-slider"></span>
+						<span class="fwa-toggle-text">
+							<strong><?php esc_html_e( 'Automation', 'flexi-whatsapp-automation' ); ?></strong>
+							<small><?php esc_html_e( 'Trigger WhatsApp messages on WordPress events (orders, registrations, etc.)', 'flexi-whatsapp-automation' ); ?></small>
+						</span>
 					</label>
 					<label class="fwa-toggle-label">
 						<input type="checkbox" id="fwa-ob-enable-logging" checked>
-						<span><?php esc_html_e( 'Logging (track activity and errors)', 'flexi-whatsapp-automation' ); ?></span>
+						<span class="fwa-toggle-slider"></span>
+						<span class="fwa-toggle-text">
+							<strong><?php esc_html_e( 'Logging', 'flexi-whatsapp-automation' ); ?></strong>
+							<small><?php esc_html_e( 'Track all activity, errors, and message delivery for debugging', 'flexi-whatsapp-automation' ); ?></small>
+						</span>
 					</label>
 					<label class="fwa-toggle-label">
 						<input type="checkbox" id="fwa-ob-enable-campaigns" checked>
-						<span><?php esc_html_e( 'Campaigns (bulk messaging)', 'flexi-whatsapp-automation' ); ?></span>
+						<span class="fwa-toggle-slider"></span>
+						<span class="fwa-toggle-text">
+							<strong><?php esc_html_e( 'Campaigns', 'flexi-whatsapp-automation' ); ?></strong>
+							<small><?php esc_html_e( 'Send bulk messages to groups of contacts with delivery tracking', 'flexi-whatsapp-automation' ); ?></small>
+						</span>
 					</label>
 				</div>
 
-				<h4><?php esc_html_e( 'Quick Start Automation', 'flexi-whatsapp-automation' ); ?></h4>
-				<p class="description"><?php esc_html_e( 'Enable common automation rules. You can customize these later.', 'flexi-whatsapp-automation' ); ?></p>
+				<div class="fwa-section-divider"></div>
+
+				<h4><?php esc_html_e( 'Quick Start Automation Rules', 'flexi-whatsapp-automation' ); ?></h4>
+				<p class="description"><?php esc_html_e( 'Enable common automation rules to get started quickly. You can customize templates and add more rules from the Automation page later.', 'flexi-whatsapp-automation' ); ?></p>
 				<div class="fwa-wizard-auto-cards">
 					<div class="fwa-wizard-auto-card">
 						<div class="fwa-wizard-auto-card-header">
 							<label class="fwa-toggle-label">
 								<input type="checkbox" id="fwa-ob-auto-woo">
+								<span class="fwa-toggle-slider"></span>
 								<strong><?php esc_html_e( 'WooCommerce Order Notification', 'flexi-whatsapp-automation' ); ?></strong>
 							</label>
 						</div>
 						<div class="fwa-wizard-auto-card-body">
-							<code><?php esc_html_e( 'Hi {customer_name}, your order #{order_id} for {order_total} has been placed!', 'flexi-whatsapp-automation' ); ?></code>
+							<p class="description"><?php esc_html_e( 'Automatically notify customers via WhatsApp when a new order is placed.', 'flexi-whatsapp-automation' ); ?></p>
+							<code>Hi {customer_name}, your order #{order_id} for {order_total} has been placed!</code>
 						</div>
 					</div>
 					<div class="fwa-wizard-auto-card">
 						<div class="fwa-wizard-auto-card-header">
 							<label class="fwa-toggle-label">
 								<input type="checkbox" id="fwa-ob-auto-welcome">
+								<span class="fwa-toggle-slider"></span>
 								<strong><?php esc_html_e( 'Welcome Message for New Users', 'flexi-whatsapp-automation' ); ?></strong>
 							</label>
 						</div>
 						<div class="fwa-wizard-auto-card-body">
-							<code><?php esc_html_e( 'Welcome to {store_name}, {customer_name}! We are glad to have you.', 'flexi-whatsapp-automation' ); ?></code>
+							<p class="description"><?php esc_html_e( 'Send a welcome WhatsApp message when a new user registers on your site.', 'flexi-whatsapp-automation' ); ?></p>
+							<code>Welcome to {store_name}, {customer_name}! We are glad to have you.</code>
 						</div>
 					</div>
 				</div>
@@ -220,18 +286,26 @@ $webhook_url = rest_url( 'fwa/v1/webhook' );
 			</div>
 			<div id="fwa-ob-summary" class="fwa-wizard-summary"></div>
 			<div class="fwa-wizard-finish-actions">
-				<div class="fwa-wizard-test-send">
-					<h4><?php esc_html_e( 'Send a Test Message', 'flexi-whatsapp-automation' ); ?></h4>
-					<p class="description"><?php esc_html_e( 'Send a quick test to confirm end-to-end messaging is working.', 'flexi-whatsapp-automation' ); ?></p>
+				<div class="fwa-form-card">
+					<div class="fwa-card-header">
+						<span class="dashicons dashicons-email-alt fwa-card-icon"></span>
+						<div>
+							<h4><?php esc_html_e( 'Send a Test Message', 'flexi-whatsapp-automation' ); ?></h4>
+							<p class="description"><?php esc_html_e( 'Send a quick test to confirm end-to-end messaging is working correctly.', 'flexi-whatsapp-automation' ); ?></p>
+						</div>
+					</div>
 					<div class="fwa-wizard-test-form">
-						<input type="text" id="fwa-ob-test-phone" class="regular-text" placeholder="+1234567890">
-						<button type="button" class="button" id="fwa-ob-send-test"><?php esc_html_e( 'Send Test', 'flexi-whatsapp-automation' ); ?></button>
+						<input type="tel" id="fwa-ob-test-phone" class="regular-text" placeholder="<?php esc_attr_e( '+1234567890', 'flexi-whatsapp-automation' ); ?>">
+						<button type="button" class="button button-primary" id="fwa-ob-send-test">
+							<span class="dashicons dashicons-email"></span>
+							<?php esc_html_e( 'Send Test', 'flexi-whatsapp-automation' ); ?>
+						</button>
 					</div>
 					<div id="fwa-ob-test-result" class="fwa-wizard-status"></div>
 				</div>
 				<div class="fwa-wizard-cta-buttons">
 					<a href="<?php echo esc_url( admin_url( 'admin.php?page=fwa-dashboard' ) ); ?>" class="button button-primary button-hero" id="fwa-ob-go-dashboard">
-						<?php esc_html_e( 'Go to Dashboard', 'flexi-whatsapp-automation' ); ?>
+						<?php esc_html_e( 'Go to Dashboard →', 'flexi-whatsapp-automation' ); ?>
 					</a>
 				</div>
 			</div>
