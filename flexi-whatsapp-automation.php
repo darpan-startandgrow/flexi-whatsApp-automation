@@ -53,6 +53,48 @@ function fwa_is_flexi_revive_cart_active() {
 }
 
 /**
+ * Check if Flexi Revive Cart Pro is installed, active, AND has a valid license.
+ *
+ * This is the authoritative check that MUST be used before accessing any
+ * FRC Pro data, hooks, or exposing FRC Pro-related options in the UI.
+ *
+ * The check verifies three independent conditions:
+ *   1. FRC_PRO_VERSION constant is defined (Pro plugin is loaded).
+ *   2. The frc_pro_license_valid filter returns true (Pro plugin confirms
+ *      its own license validity).
+ *   3. A convenience fwa_frc_pro_licensed filter allows extensions to
+ *      override the result if needed.
+ *
+ * Simply defining FRC_PRO_VERSION in wp-config.php will NOT return true
+ * because the frc_pro_license_valid filter will still return false without
+ * the actual Pro plugin loaded and licensed.
+ *
+ * @since 1.2.0
+ *
+ * @return bool True only if FRC Pro is installed, active, and licensed.
+ */
+function fwa_is_frc_pro_licensed() {
+	// The FRC free plugin exposes frc_is_pro_licensed() which checks both
+	// the FRC_PRO_VERSION constant and the frc_pro_license_valid filter.
+	if ( function_exists( 'frc_is_pro_licensed' ) ) {
+		$licensed = frc_is_pro_licensed();
+	} else {
+		// Fallback: replicate the same two-part check so FWA works even
+		// if an older version of FRC free is present.
+		$licensed = defined( 'FRC_PRO_VERSION' ) && apply_filters( 'frc_pro_license_valid', false );
+	}
+
+	/**
+	 * Filters whether FRC Pro is considered licensed for FWA purposes.
+	 *
+	 * @since 1.2.0
+	 *
+	 * @param bool $licensed True if FRC Pro is installed, active, and licensed.
+	 */
+	return (bool) apply_filters( 'fwa_frc_pro_licensed', $licensed );
+}
+
+/**
  * Check if WooCommerce is active.
  *
  * @return bool

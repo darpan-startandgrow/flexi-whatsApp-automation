@@ -68,6 +68,24 @@ class FWA_Admin_Settings {
 			)
 		);
 
+		register_setting( self::OPTION_GROUP, 'fwa_enable_automation', array(
+			'type'              => 'string',
+			'sanitize_callback' => array( $this, 'sanitize_checkbox' ),
+			'default'           => 'yes',
+		) );
+
+		register_setting( self::OPTION_GROUP, 'fwa_enable_logging', array(
+			'type'              => 'string',
+			'sanitize_callback' => array( $this, 'sanitize_checkbox' ),
+			'default'           => 'yes',
+		) );
+
+		register_setting( self::OPTION_GROUP, 'fwa_enable_campaigns', array(
+			'type'              => 'string',
+			'sanitize_callback' => array( $this, 'sanitize_checkbox' ),
+			'default'           => 'yes',
+		) );
+
 		// --- API section -------------------------------------------------------
 		add_settings_section(
 			'fwa_section_api',
@@ -391,6 +409,9 @@ class FWA_Admin_Settings {
 			'fwa_debug_mode',
 			'fwa_file_logging',
 			'fwa_auto_reconnect',
+			'fwa_enable_automation',
+			'fwa_enable_logging',
+			'fwa_enable_campaigns',
 		);
 
 		foreach ( $checkbox_fields as $field ) {
@@ -403,6 +424,43 @@ class FWA_Admin_Settings {
 
 		if ( isset( $input['fwa_default_country_code'] ) ) {
 			$clean['fwa_default_country_code'] = sanitize_text_field( $input['fwa_default_country_code'] );
+		}
+
+		// Webhook signature mode.
+		if ( isset( $input['fwa_webhook_signature_mode'] ) ) {
+			$valid_modes = array( 'secret', 'hmac' );
+			$clean['fwa_webhook_signature_mode'] = in_array( $input['fwa_webhook_signature_mode'], $valid_modes, true )
+				? $input['fwa_webhook_signature_mode']
+				: 'secret';
+		}
+
+		// Text fields that pass through as sanitized text.
+		$text_fields = array(
+			'fwa_otp_default_redirect',
+			'fwa_otp_welcome_message',
+			'fwa_otp_admin_alert_phone',
+			'fwa_otp_admin_alert_events',
+			'fwa_otp_phone_blacklist',
+			'fwa_otp_role_redirects',
+			'fwa_admin_alert_phone',
+		);
+
+		foreach ( $text_fields as $field ) {
+			if ( isset( $input[ $field ] ) ) {
+				$clean[ $field ] = sanitize_text_field( $input[ $field ] );
+			}
+		}
+
+		// OTP checkbox fields.
+		$otp_checkboxes = array(
+			'fwa_otp_enabled',
+			'fwa_otp_wc_checkout',
+		);
+
+		foreach ( $otp_checkboxes as $field ) {
+			if ( isset( $input[ $field ] ) ) {
+				$clean[ $field ] = ! empty( $input[ $field ] ) ? 'yes' : 'no';
+			}
 		}
 
 		return $clean;

@@ -102,8 +102,8 @@ jQuery(document).ready(function($) {
         }, function(response) {
             var tbody = $('#fwa-instances-table tbody');
             tbody.empty();
-            if (response.success && response.data && response.data.length) {
-                $.each(response.data, function(i, inst) {
+            if (response.success && response.data && response.data.instances && response.data.instances.length) {
+                $.each(response.data.instances, function(i, inst) {
                     var color   = statusColors[inst.status] || '#999';
                     var checked = inst.is_active ? 'checked' : '';
                     tbody.append(

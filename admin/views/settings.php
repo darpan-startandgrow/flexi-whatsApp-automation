@@ -7,6 +7,7 @@ $tabs = array(
 	'general'    => __( 'General', 'flexi-whatsapp-automation' ),
 	'api'        => __( 'API Configuration', 'flexi-whatsapp-automation' ),
 	'messaging'  => __( 'Messaging', 'flexi-whatsapp-automation' ),
+	'woocommerce'=> __( 'WooCommerce', 'flexi-whatsapp-automation' ),
 	'otp'        => __( 'OTP Login', 'flexi-whatsapp-automation' ),
 	'automation' => __( 'Automation', 'flexi-whatsapp-automation' ),
 	'advanced'   => __( 'Advanced', 'flexi-whatsapp-automation' ),
@@ -49,6 +50,13 @@ if ( ! array_key_exists( $active_tab, $tabs ) ) {
 						<?php esc_html_e( 'Enable debug logging', 'flexi-whatsapp-automation' ); ?></label>
 					</td>
 				</tr>
+				<tr>
+					<th><?php esc_html_e( 'Admin Alert Phone', 'flexi-whatsapp-automation' ); ?></th>
+					<td>
+						<input type="tel" name="fwa_admin_alert_phone" value="<?php echo esc_attr( get_option( 'fwa_admin_alert_phone', '' ) ); ?>" class="regular-text" placeholder="+1234567890">
+						<p class="description"><?php esc_html_e( 'Receive admin alerts (new orders, registrations, etc.) on this WhatsApp number. Leave blank to disable.', 'flexi-whatsapp-automation' ); ?></p>
+					</td>
+				</tr>
 			</table>
 
 		<?php elseif ( 'api' === $active_tab ) : ?>
@@ -86,6 +94,59 @@ if ( ! array_key_exists( $active_tab, $tabs ) ) {
 							<option value="hmac"   <?php selected( get_option( 'fwa_webhook_signature_mode', 'secret' ), 'hmac' ); ?>><?php esc_html_e( 'HMAC-SHA256 (X-Hub-Signature-256)', 'flexi-whatsapp-automation' ); ?></option>
 						</select>
 						<p class="description"><?php esc_html_e( 'HMAC mode verifies a SHA-256 HMAC of the raw request body using the secret above.', 'flexi-whatsapp-automation' ); ?></p>
+					</td>
+				</tr>
+			</table>
+
+		<?php elseif ( 'woocommerce' === $active_tab ) : ?>
+			<?php
+			$wc_statuses = array(
+				'processing' => __( 'Processing', 'flexi-whatsapp-automation' ),
+				'completed'  => __( 'Completed', 'flexi-whatsapp-automation' ),
+				'on-hold'    => __( 'On Hold', 'flexi-whatsapp-automation' ),
+				'cancelled'  => __( 'Cancelled', 'flexi-whatsapp-automation' ),
+				'refunded'   => __( 'Refunded', 'flexi-whatsapp-automation' ),
+				'failed'     => __( 'Failed', 'flexi-whatsapp-automation' ),
+			);
+			$wc_notifications = get_option( 'fwa_wc_notifications', array() );
+			if ( ! is_array( $wc_notifications ) ) {
+				$wc_notifications = array();
+			}
+			?>
+			<p class="description" style="margin-bottom:15px;">
+				<?php esc_html_e( 'Configure automatic WhatsApp notifications to customers when their WooCommerce order status changes. Use placeholders: {customer_name}, {order_id}, {order_total}, {order_status}, {store_name}, {product_list}.', 'flexi-whatsapp-automation' ); ?>
+			</p>
+			<table class="form-table">
+				<?php foreach ( $wc_statuses as $status_key => $status_label ) :
+					$notif   = isset( $wc_notifications[ $status_key ] ) ? $wc_notifications[ $status_key ] : array();
+					$enabled = ! empty( $notif['enabled'] );
+					$message = isset( $notif['message'] ) ? $notif['message'] : '';
+				?>
+				<tr>
+					<th><?php echo esc_html( $status_label ); ?></th>
+					<td>
+						<label style="display:block;margin-bottom:6px;">
+							<input type="checkbox" name="fwa_wc_notifications[<?php echo esc_attr( $status_key ); ?>][enabled]" value="1" <?php checked( $enabled ); ?>>
+							<?php
+							/* translators: %s: order status label */
+							printf( esc_html__( 'Send notification when order is %s', 'flexi-whatsapp-automation' ), esc_html( strtolower( $status_label ) ) );
+							?>
+						</label>
+						<textarea name="fwa_wc_notifications[<?php echo esc_attr( $status_key ); ?>][message]" class="large-text" rows="2" placeholder="<?php
+							/* translators: %s: order status */
+							echo esc_attr( sprintf( __( 'Hi {customer_name}, your order #{order_id} is now %s. Thank you!', 'flexi-whatsapp-automation' ), strtolower( $status_label ) ) );
+						?>"><?php echo esc_textarea( $message ); ?></textarea>
+					</td>
+				</tr>
+				<?php endforeach; ?>
+				<tr>
+					<th><?php esc_html_e( 'Admin Order Alerts', 'flexi-whatsapp-automation' ); ?></th>
+					<td>
+						<label>
+							<input type="checkbox" name="fwa_wc_admin_order_alert" value="yes" <?php checked( get_option( 'fwa_wc_admin_order_alert', 'no' ), 'yes' ); ?>>
+							<?php esc_html_e( 'Notify admin on new orders via WhatsApp', 'flexi-whatsapp-automation' ); ?>
+						</label>
+						<p class="description"><?php esc_html_e( 'Uses the Admin Alert Phone number from the General tab.', 'flexi-whatsapp-automation' ); ?></p>
 					</td>
 				</tr>
 			</table>
