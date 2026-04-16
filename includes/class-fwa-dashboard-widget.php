@@ -29,7 +29,7 @@ class FWA_Dashboard_Widget {
 
 		wp_add_dashboard_widget(
 			'fwa_dashboard_widget',
-			'<span class="dashicons dashicons-format-chat"></span> ' . esc_html__( 'WhatsApp Automation', 'flexi-whatsapp-automation' ),
+			'<span class="dashicons dashicons-format-chat" style="margin-right:4px;"></span> ' . esc_html__( 'WhatsApp Automation', 'flexi-whatsapp-automation' ),
 			array( $this, 'render_widget' )
 		);
 	}

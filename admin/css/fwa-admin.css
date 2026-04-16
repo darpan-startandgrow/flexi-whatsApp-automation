@@ -912,6 +912,16 @@
 	color: #00a32a;
 }
 
+/* Spin animation for loading icons */
+@keyframes fwa-spin-anim {
+	from { transform: rotate(0deg); }
+	to { transform: rotate(360deg); }
+}
+
+.fwa-spin {
+	animation: fwa-spin-anim 1s linear infinite;
+}
+
 /* ==========================================================================
    Dashboard Widget Styles
    ========================================================================== */

@@ -173,7 +173,7 @@
 				action: 'fwa_create_instance',
 				nonce: fwa_admin.nonce,
 				name: name,
-				instance_id: 'auto_' + Date.now(),
+				instance_id: 'auto_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8),
 				access_token: '',
 				phone_number: ''
 			}, function (r) {
