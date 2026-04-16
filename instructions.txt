@@ -1,0 +1,438 @@
+================================================================================
+ Flexi WhatsApp Automation – Full Setup & Requirements Guide
+ Version: 1.1.0
+================================================================================
+
+This file explains everything you need beyond the plugin itself to make it
+work exactly like wawp.net. Read it top to bottom before you touch any settings.
+
+
+================================================================================
+ 1. HOW THE SYSTEM WORKS (END-TO-END)
+================================================================================
+
+This plugin does NOT use the official WhatsApp Business API. It works through
+WhatsApp Web session automation — the same technique used by wawp.net.
+
+Here is the complete flow:
+
+  a) You run (or subscribe to) an external WhatsApp session engine server.
+     That server keeps a WhatsApp Web session alive and exposes a REST API.
+
+  b) You install this plugin on your WordPress site and point it at that server
+     by entering the server's base URL and API token in Settings → API.
+
+  c) You create an "instance" in the plugin (WhatsApp Instances page). The
+     plugin calls the session server, which generates a QR code.
+
+  d) You scan the QR code in WhatsApp (Linked Devices → Link a Device) on the
+     phone number you want to send messages from. The session is now live.
+
+  e) From this point the plugin can send messages through that session. When
+     a WooCommerce order is placed, a cart is abandoned, or any other event
+     fires, the plugin calls the session server via HTTP and the session server
+     delivers the message to the recipient's WhatsApp.
+
+  f) The session server can also POST events (incoming messages, delivery
+     receipts, session status) back to WordPress via the webhook endpoints
+     this plugin registers at /wp-json/fwa/v1/webhook/*.
+
+
+================================================================================
+ 2. REQUIRED COMPONENTS (BEYOND THIS PLUGIN)
+================================================================================
+
+You MUST have all of the following before the plugin can send a single message.
+
+  a) WordPress 6.0 or later
+  b) PHP 7.4 or later (PHP 8.1+ recommended)
+  c) An SSL certificate (HTTPS) on your WordPress site
+     — Required so the session server can POST webhooks back to you, and
+       so tokens are not transmitted in plain text.
+
+  d) WP-Cron running reliably (or a real system cron calling wp-cron.php)
+     — The queue processor, instance health check, and scheduled messages
+       all rely on WordPress cron. Managed WordPress hosts and shared hosts
+       often disable real cron; on those you MUST add a system cron job:
+         * * * * * wget -q -O- https://yoursite.com/wp-cron.php?doing_wp_cron >/dev/null 2>&1
+
+  e) An external WhatsApp Web session engine (see Section 3 below).
+
+
+================================================================================
+ 3. THE EXTERNAL WHATSAPP SESSION ENGINE (THE CRITICAL PIECE)
+================================================================================
+
+This is the most important dependency. Without it, the plugin cannot connect
+to WhatsApp at all.
+
+A "session engine" is a Node.js-based server that wraps the WhatsApp Web
+protocol. It exposes a REST API that the plugin calls to:
+  - Create / delete instances
+  - Generate QR codes
+  - Send messages (text, media, polls, contacts, etc.)
+  - Receive webhooks for incoming messages and delivery receipts
+
+COMPATIBLE OPEN-SOURCE PROJECTS
+  The plugin's API client is designed around a standard set of endpoints
+  (instance/create, instance/{id}/qr, message/text, message/media, etc.)
+  that are compatible with self-hosted engines such as:
+
+    • WPPConnect Server  — https://github.com/wppconnect-team/wppconnect-server
+    • Baileys-based APIs — any server that exposes the same route structure
+    • wawp.net-compatible servers (the SaaS wawp.net uses this same approach)
+
+  The exact engine does not matter as long as it matches the API shape
+  this plugin expects (see Section 6 for the endpoint list).
+
+SELF-HOSTING THE ENGINE
+  1. Provision a VPS (Ubuntu 22.04 recommended, minimum 1 GB RAM).
+  2. Install Node.js 18+ and npm.
+  3. Clone / install your chosen engine (e.g. WPPConnect Server):
+       git clone https://github.com/wppconnect-team/wppconnect-server.git
+       cd wppconnect-server && npm install && npm start
+  4. The engine will listen on a port (default: 21465 for WPPConnect).
+  5. Put it behind Nginx/Apache with an SSL cert so you get an HTTPS base URL,
+     e.g. https://wa-api.yourdomain.com
+  6. Note down: base URL and the secretkey / API token the engine uses.
+
+USING A MANAGED SERVICE (EASIEST)
+  If you do not want to manage a server yourself, use any hosted WhatsApp
+  API service that is compatible with the endpoint structure listed in
+  Section 6. SaaS providers include wawp.net, UltraMsg, CallMeBot, etc.
+  — just confirm they expose the same REST routes the plugin calls.
+
+
+================================================================================
+ 4. OPTIONAL (BUT RECOMMENDED) COMPONENTS
+================================================================================
+
+  WooCommerce (7.0+)
+    Required for order-related automations:
+      - New order notifications
+      - Order status change messages (processing, shipped, completed, etc.)
+      - Payment complete confirmation
+      - Checkout complete confirmation
+      - WooCommerce Subscriptions support (renewal, cancellation, expiry)
+    Without WooCommerce these triggers simply do nothing.
+
+  WooCommerce Subscriptions
+    Required only if you want subscription lifecycle WhatsApp notifications
+    (activated, renewed, cancelled, expired, payment failed).
+
+  Flexi Revive Cart
+    Required for abandoned-cart WhatsApp recovery (see Section 9).
+    Install from: https://github.com/darpan-startandgrow/flexi-revive-cart
+
+
+================================================================================
+ 5. STEP-BY-STEP SETUP
+================================================================================
+
+STEP 1 — Install and activate the plugin
+  - Upload the flexi-whatsapp-automation folder to /wp-content/plugins/ and
+    activate it, OR use Plugins → Add New → Upload Plugin.
+  - On activation the plugin creates its database tables and schedules cron
+    jobs automatically. An onboarding wizard starts on the first admin load.
+
+STEP 2 — Enter API credentials
+  - Go to WhatsApp Auto → Settings → API Configuration.
+  - API Base URL: enter the full HTTPS base URL of your session engine,
+    e.g. https://wa-api.yourdomain.com
+    Do NOT include a trailing slash. Do NOT include a path.
+  - Global API Token: enter the API key / secret from the session engine.
+  - Webhook Secret: pick a random string (20+ characters). You will paste
+    this same value into the session engine's webhook configuration so the
+    plugin can verify incoming payloads.
+  - Save settings.
+
+STEP 3 — Create a WhatsApp instance
+  - Go to WhatsApp Auto → Instances → Add Instance.
+  - Give it a name (e.g. "Shop Number").
+  - The plugin calls the session engine to provision the instance.
+  - A QR code appears on screen.
+
+STEP 4 — Scan the QR code
+  - On the phone whose WhatsApp number you want to use:
+      Open WhatsApp → ⋮ menu → Linked Devices → Link a Device
+      Point camera at the QR code on screen.
+  - Status changes to "connected" within a few seconds.
+  - That phone number is now your sending identity.
+
+STEP 5 — Configure the webhook URL in the session engine
+  - Your WordPress webhook URL is:
+      https://yoursite.com/wp-json/fwa/v1/webhook
+  - Enter this URL in the session engine's webhook settings along with the
+    Webhook Secret you chose in Step 2.
+  - The session engine will POST delivery receipts, incoming messages, and
+    session status changes to this URL.
+
+STEP 6 — Set the active instance
+  - Go to Instances, find your connected instance, click "Set Active".
+  - All automations and quick-send messages will use this instance by default.
+
+STEP 7 — Test end-to-end
+  - Go to WhatsApp Auto → Dashboard.
+  - Use the Quick Send form: enter a phone number (with country code, no
+    spaces or dashes, e.g. +911234567890) and send a test message.
+  - Confirm the message arrives on WhatsApp.
+
+STEP 8 — Configure automations (optional but typical)
+  - Go to WhatsApp Auto → Automation → Add Rule.
+  - For WooCommerce:
+      Event: new_order
+      Phone field: billing_phone
+      Template: Hi {customer_name}! Your order #{order_id} for {order_total}
+                has been placed. Thank you!
+  - Save. Future orders will trigger the message automatically.
+
+STEP 9 — Configure general settings
+  - Default Country Code: e.g. +91 or +1 — used when a stored phone number
+    has no country code prefix.
+  - Rate Limit: maximum messages per minute per instance (default: 20).
+    Keep this conservative to avoid WhatsApp flagging the number.
+  - Debug Mode: turn on only when troubleshooting; generates verbose logs.
+
+
+================================================================================
+ 6. API ENDPOINT STRUCTURE THE PLUGIN EXPECTS
+================================================================================
+
+The session engine MUST expose these HTTP endpoints (relative to the base URL):
+
+  POST   instance/create                — Create a new session instance
+  GET    instance/{id}/qr               — Get QR code (base64 or URL)
+  GET    instance/{id}/pairing?phone=X  — Get pairing code
+  GET    instance/{id}/status           — Get connection status
+  POST   instance/{id}/reconnect        — Reconnect a dropped session
+  POST   instance/{id}/logout           — Logout / end session
+  DELETE instance/{id}                  — Delete instance
+  POST   instance/presence              — Set presence status
+
+  POST   message/text                   — Send plain text
+  POST   message/media                  — Send image/video/audio/document
+  POST   message/contact                — Send vCard
+  POST   message/poll                   — Send poll
+  POST   message/link-preview           — Send link with preview
+  POST   message/mark-read              — Mark messages as read
+
+All requests carry:
+  Content-Type: application/json
+  Authorization: Bearer <access_token>
+
+Success responses return JSON. The text send response must include a
+"messageId" key for delivery tracking to work.
+
+
+================================================================================
+ 7. WEBHOOK ENDPOINTS REGISTERED BY THIS PLUGIN
+================================================================================
+
+Configure these in your session engine as the callback URLs:
+
+  POST  /wp-json/fwa/v1/webhook           — General events
+  POST  /wp-json/fwa/v1/webhook/message   — Incoming messages
+  POST  /wp-json/fwa/v1/webhook/status    — Delivery status updates
+  POST  /wp-json/fwa/v1/webhook/session   — Session / connection status
+  GET   /wp-json/fwa/v1/webhook/verify    — One-time URL verification
+
+The plugin validates a shared secret sent in the X-FWA-Secret or
+X-Webhook-Secret header. Set the same value in:
+  WordPress: WhatsApp Auto → Settings → API → Webhook Secret
+  Session engine: webhook secret / token field
+
+
+================================================================================
+ 8. CONDITIONS THAT MUST BE MET FOR FULL FUNCTIONALITY
+================================================================================
+
+Condition                          | What breaks if not met
+-----------------------------------+------------------------------------------
+Session engine reachable from WP   | QR code fails; no messages sent
+WP site reachable from engine      | Webhooks fail; delivery/status tracking
+                                   | broken; incoming messages not logged
+HTTPS on both sides                | Webhooks blocked; tokens exposed
+WP-Cron firing every minute        | Scheduled messages not sent; campaigns
+                                   | stuck; health checks don't run
+Phone number has WhatsApp          | Recipient never receives messages
+Instance status = connected        | All sends fail immediately
+Phone not banned by WhatsApp       | All sends fail silently
+Rate limit respected               | Number gets soft-banned after spam detect
+Billing phone field populated      | WooCommerce automations cannot find phone
+                                   | number; messages not sent for that order
+WooCommerce active                 | All WooCommerce automation events ignored
+Flexi Revive Cart active           | Abandoned cart events ignored
+
+
+================================================================================
+ 9. FLEXI REVIVE CART INTEGRATION
+================================================================================
+
+Overview
+  Flexi Revive Cart (FRC) tracks WooCommerce abandoned carts and sends email
+  reminders. When BOTH plugins are active, this plugin listens to FRC's events
+  and sends WhatsApp messages in addition to (or instead of) emails.
+
+How it works
+  FRC fires three WordPress action hooks that this plugin listens to:
+
+  Hook 1: frc_after_cart_tracked($cart_id, $user_id)
+    Fires when FRC marks a cart as abandoned (after the timeout you set in
+    FRC settings, default 60 minutes of inactivity).
+    → This plugin loads the cart row from the wp_frc_abandoned_carts table,
+      reads the customer's billing_phone, and fires any automation rules you
+      set for the "cart_abandoned" event.
+
+  Hook 2: frc_cart_restore_complete($cart, $channel)
+    Fires when a customer clicks the recovery link and their cart is restored.
+    → This plugin triggers "cart_recovered" automation rules.
+
+  Hook 3: frc_dispatch_reminder($cart, $stage)
+    Fires each time FRC is about to send an email reminder (stage 1, 2, 3…).
+    → This plugin matches automation rules for "frc_reminder_stage_{stage}"
+      and sends a WhatsApp message at the same stage.
+
+Setup for abandoned cart WhatsApp messages
+  1. Install and activate Flexi Revive Cart from:
+       https://github.com/darpan-startandgrow/flexi-revive-cart
+  2. Configure FRC under Flexi Revive → Settings:
+       - Enable cart tracking
+       - Set abandonment timeout (e.g. 60 minutes)
+       - Configure email reminder stages (optional; WhatsApp works independently)
+  3. Confirm that customers have a billing phone number with country code stored
+     on their WooCommerce account. FRC reads this from:
+       - wp_usermeta: billing_phone (logged-in users)
+       - wp_frc_abandoned_carts: billing_phone column (captured at checkout)
+  4. In this plugin go to WhatsApp Auto → Automation → Add Rule:
+       Event:        cart_abandoned
+       Phone field:  billing_phone
+       Template:     Hi {customer_name}! You left items in your cart.
+                     Total: {cart_total}. Come back and complete your order!
+  5. Add another rule for recovery confirmation:
+       Event:        cart_recovered
+       Phone field:  billing_phone
+       Template:     Great news, {customer_name}! Your cart has been restored.
+                     Complete your purchase here: {recovery_link}
+  6. Optionally add rules for each reminder stage:
+       Event:        frc_reminder_stage_1   (matches FRC stage "1")
+       Event:        frc_reminder_stage_2   etc.
+       Template:     Hi {customer_name}, just a reminder about your cart!
+
+Available template placeholders for cart events
+  {customer_name}   Customer's display name
+  {cart_total}      Cart value (formatted by FRC)
+  {recovery_link}   One-click recovery URL (available in frc_reminder_stage_*)
+  {site_name}       Your site name
+  {date}            Current date
+
+Important notes
+  - FRC only tracks logged-in users in the free version. Guest cart tracking
+    requires the FRC Pro add-on (exit-intent popup captures the email/phone).
+  - The phone number MUST include the country code (+91, +1, etc.) or you must
+    set a default country code in WhatsApp Auto → Settings → General.
+  - Both plugins can operate independently. If FRC is deactivated, the
+    cart_abandoned/cart_recovered automation rules simply never fire. If this
+    plugin is deactivated, FRC continues sending its email reminders unchanged.
+
+
+================================================================================
+ 10. RATE LIMITING AND ANTI-BAN PRACTICES
+================================================================================
+
+WhatsApp aggressively bans numbers used for bulk/automated sending if
+messages look spammy. Follow these practices:
+
+  - Keep the rate limit at 20 messages/minute or lower (Settings → API).
+  - For campaigns the default inter-message delay is 3 seconds. Do not set
+    this below 2 seconds.
+  - Do not send the same message text to many contacts; use personalized
+    templates with {customer_name}, {order_id}, etc.
+  - Use a number that already has a history of human conversations.
+  - Do not send to numbers that haven't messaged you first unless they
+    explicitly opted in (e.g. at checkout).
+  - If a number gets banned, its status changes to "banned" in the Instances
+    list. You will need a fresh WhatsApp number.
+
+
+================================================================================
+ 11. PHONE NUMBER FORMAT
+================================================================================
+
+All phone numbers stored and sent MUST be in E.164 format:
+  +[country code][number without leading 0]
+
+Examples:
+  India:          +919876543210  (not 09876543210)
+  United States:  +12025551234
+  United Kingdom: +447911123456
+
+If WooCommerce customers do not enter country codes, set a default in
+WhatsApp Auto → Settings → General → Default Country Code (e.g. +91) and
+the plugin will prepend it when the number has no country code.
+
+
+================================================================================
+ 12. DATABASE TABLES CREATED BY THIS PLUGIN
+================================================================================
+
+On activation, the plugin creates these tables (prefix = wp_ by default):
+
+  wp_fwa_instances    — WhatsApp account/session records
+  wp_fwa_messages     — Every sent/received message
+  wp_fwa_campaigns    — Bulk campaign definitions
+  wp_fwa_contacts     — Contact list
+  wp_fwa_schedules    — Scheduled message queue
+  wp_fwa_automation   — Automation rules
+  wp_fwa_logs         — Activity and error logs
+
+These tables are removed only if you choose "Delete Data & Deactivate" when
+deactivating the plugin. Choosing "Keep Data & Deactivate" retains all history.
+
+
+================================================================================
+ 13. QUICK TROUBLESHOOTING REFERENCE
+================================================================================
+
+Problem                           | Fix
+----------------------------------+---------------------------------------------
+QR code does not appear           | Check API Base URL (no trailing slash),
+                                  | check API token, verify engine is running
+Messages not sending              | Check instance status is "connected";
+                                  | check API logs in WhatsApp Auto → Logs
+OTP not received on WhatsApp      | The bot session must be "connected";
+                                  | check the phone number has WhatsApp
+Campaigns stuck / not progressing | Verify WP-Cron is firing; check the rate
+                                  | limit is not 0; try Pause then Resume
+Session keeps disconnecting       | Health checks run hourly and attempt
+                                  | auto-reconnect; check engine server uptime
+Webhooks not arriving             | Confirm webhook URL is reachable from the
+                                  | engine server; check Webhook Secret matches
+Abandoned cart WA not sending     | Confirm Flexi Revive Cart is active;
+                                  | confirm customer has billing_phone saved;
+                                  | confirm automation rule event = cart_abandoned
+WooCommerce triggers not firing   | Confirm WooCommerce is active and the
+                                  | automation rule event name matches exactly
+                                  | (e.g. new_order, order_status_processing)
+
+
+================================================================================
+ 14. SUMMARY CHECKLIST
+================================================================================
+
+Before going live, confirm every item below:
+
+  [ ] Session engine is deployed, running, and accessible over HTTPS
+  [ ] API Base URL and Global API Token entered in Settings → API
+  [ ] At least one WhatsApp instance created and status = connected
+  [ ] Webhook Secret set in Settings and matching value in session engine
+  [ ] Session engine webhook URL set to https://yoursite.com/wp-json/fwa/v1/webhook
+  [ ] WP-Cron firing at least every minute (verify with Cron Jobs page or plugin)
+  [ ] Phone numbers in WooCommerce orders include country code
+  [ ] Default Country Code set as fallback in Settings → General
+  [ ] Rate limit set to a safe value (≤20 messages/minute)
+  [ ] Test message sent and received successfully from Dashboard → Quick Send
+  [ ] Automation rules created for desired events (new_order, etc.)
+  [ ] (If using FRC) Flexi Revive Cart active and cart_abandoned rule created
+  [ ] (If using FRC) Customers have billing_phone with country code
+
+================================================================================
