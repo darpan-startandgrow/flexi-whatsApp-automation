@@ -195,7 +195,7 @@
 			var $btn = $('#fwa-ob-save-api');
 			$btn.prop('disabled', true);
 			$btn.find('.dashicons').removeClass('dashicons-cloud').addClass('dashicons-update fwa-spin');
-			$btn.contents().last()[0].textContent = ' Testing Connection…';
+			self.setBtnText($btn, 'Testing Connection…');
 			this.showStatus('#fwa-ob-api-status', 'loading', 'Connecting to API server… This may take a few seconds.');
 
 			$.post(fwa_admin.ajax_url, {
@@ -218,7 +218,7 @@
 			}).always(function () {
 				$btn.prop('disabled', false);
 				$btn.find('.dashicons').removeClass('dashicons-update fwa-spin').addClass('dashicons-cloud');
-				$btn.contents().last()[0].textContent = ' Save & Check Connection';
+				self.setBtnText($btn, 'Save & Check Connection');
 			});
 		},
 
@@ -238,7 +238,7 @@
 
 			$btn.prop('disabled', true);
 			$btn.find('.dashicons').removeClass('dashicons-admin-links').addClass('dashicons-update fwa-spin');
-			$btn.contents().last()[0].textContent = ' Connecting…';
+			self.setBtnText($btn, 'Connecting…');
 			this.showStatus('#fwa-ob-connection-status', 'loading', 'Creating instance and requesting QR code…');
 
 			$.post(fwa_admin.ajax_url, {
@@ -263,7 +263,7 @@
 			}).always(function () {
 				$btn.prop('disabled', false);
 				$btn.find('.dashicons').removeClass('dashicons-update fwa-spin').addClass('dashicons-admin-links');
-				$btn.contents().last()[0].textContent = ' Connect WhatsApp';
+				self.setBtnText($btn, 'Connect WhatsApp');
 			});
 		},
 
@@ -282,7 +282,7 @@
 			}, function (r) {
 				if (r.success && r.data.qr) {
 					var src = r.data.qr;
-					if (src.indexOf('data:') !== 0 && src.indexOf('http') !== 0) {
+					if (!src.startsWith('data:') && !src.startsWith('http')) {
 						src = 'data:image/png;base64,' + src;
 					}
 					$('#fwa-ob-qr-area').html(
@@ -604,7 +604,7 @@
 			var $btn = $('#fwa-ob-send-test');
 			$btn.prop('disabled', true);
 			$btn.find('.dashicons').removeClass('dashicons-email').addClass('dashicons-update fwa-spin');
-			$btn.contents().last()[0].textContent = ' Sending…';
+			self.setBtnText($btn, 'Sending…');
 
 			$.post(fwa_admin.ajax_url, {
 				action: 'fwa_send_message',
@@ -624,7 +624,7 @@
 			}).always(function () {
 				$btn.prop('disabled', false);
 				$btn.find('.dashicons').removeClass('dashicons-update fwa-spin').addClass('dashicons-email');
-				$btn.contents().last()[0].textContent = ' Send Test';
+				self.setBtnText($btn, 'Send Test');
 			});
 		},
 
@@ -665,6 +665,25 @@
 			var cls = 'fwa-wizard-status-' + type;
 
 			$(selector).html('<div class="' + cls + '">' + icon + '<span>' + message + '</span></div>');
+		},
+
+		/**
+		 * Safely update a button's text label while keeping its icon.
+		 *
+		 * Finds the last text node inside the button and replaces it.
+		 * Falls back to updating the full button text if no child text node exists.
+		 */
+		setBtnText: function ($btn, text) {
+			var found = false;
+			$btn.contents().each(function () {
+				if (this.nodeType === 3 && this.textContent.trim().length > 0) {
+					this.textContent = ' ' + text;
+					found = true;
+				}
+			});
+			if (!found) {
+				$btn.append(' ' + text);
+			}
 		}
 	};
 

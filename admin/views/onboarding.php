@@ -125,8 +125,8 @@ $webhook_url = rest_url( 'fwa/v1/webhook' );
 				</div>
 				<div class="fwa-form-group">
 					<label for="fwa-ob-instance-name"><?php esc_html_e( 'Instance Name', 'flexi-whatsapp-automation' ); ?></label>
-					<input type="text" id="fwa-ob-instance-name" class="regular-text" value="My WhatsApp" placeholder="<?php esc_attr_e( 'e.g. Support Line, Sales Team', 'flexi-whatsapp-automation' ); ?>">
-					<p class="description"><?php esc_html_e( 'A friendly label to identify this WhatsApp number (e.g., "Support Line" or "Sales Team").', 'flexi-whatsapp-automation' ); ?></p>
+					<input type="text" id="fwa-ob-instance-name" class="regular-text" placeholder="<?php esc_attr_e( 'e.g. Support Line, Sales Team', 'flexi-whatsapp-automation' ); ?>">
+					<p class="description"><?php esc_html_e( 'A friendly label to identify this WhatsApp number (e.g., "Support Line" or "Sales Team"). Defaults to "My WhatsApp" if left blank.', 'flexi-whatsapp-automation' ); ?></p>
 				</div>
 				<div class="fwa-form-actions">
 					<button type="button" class="button button-primary button-large" id="fwa-ob-create-instance">
