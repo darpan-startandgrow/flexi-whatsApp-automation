@@ -68,6 +68,24 @@ class FWA_Admin_Settings {
 			)
 		);
 
+		register_setting( self::OPTION_GROUP, 'fwa_enable_automation', array(
+			'type'              => 'string',
+			'sanitize_callback' => array( $this, 'sanitize_checkbox' ),
+			'default'           => 'yes',
+		) );
+
+		register_setting( self::OPTION_GROUP, 'fwa_enable_logging', array(
+			'type'              => 'string',
+			'sanitize_callback' => array( $this, 'sanitize_checkbox' ),
+			'default'           => 'yes',
+		) );
+
+		register_setting( self::OPTION_GROUP, 'fwa_enable_campaigns', array(
+			'type'              => 'string',
+			'sanitize_callback' => array( $this, 'sanitize_checkbox' ),
+			'default'           => 'yes',
+		) );
+
 		// --- API section -------------------------------------------------------
 		add_settings_section(
 			'fwa_section_api',
@@ -391,6 +409,9 @@ class FWA_Admin_Settings {
 			'fwa_debug_mode',
 			'fwa_file_logging',
 			'fwa_auto_reconnect',
+			'fwa_enable_automation',
+			'fwa_enable_logging',
+			'fwa_enable_campaigns',
 		);
 
 		foreach ( $checkbox_fields as $field ) {

@@ -3,18 +3,21 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 $events = array(
-	'new_order'              => __( 'New Order Created', 'flexi-whatsapp-automation' ),
-	'order_status_completed' => __( 'Order Completed', 'flexi-whatsapp-automation' ),
-	'order_status_processing'=> __( 'Order Processing', 'flexi-whatsapp-automation' ),
-	'order_status_cancelled' => __( 'Order Cancelled', 'flexi-whatsapp-automation' ),
-	'order_status_refunded'  => __( 'Order Refunded', 'flexi-whatsapp-automation' ),
-	'payment_complete'       => __( 'Payment Complete', 'flexi-whatsapp-automation' ),
-	'checkout_complete'      => __( 'Checkout Complete', 'flexi-whatsapp-automation' ),
-	'user_register'          => __( 'User Registered', 'flexi-whatsapp-automation' ),
-	'user_login'             => __( 'User Login', 'flexi-whatsapp-automation' ),
-	'cart_abandoned'         => __( 'Cart Abandoned (Flexi Revive Cart)', 'flexi-whatsapp-automation' ),
-	'cart_recovered'         => __( 'Cart Recovered (Flexi Revive Cart)', 'flexi-whatsapp-automation' ),
-	'custom'                 => __( 'Custom Trigger', 'flexi-whatsapp-automation' ),
+	'new_order'                => __( 'New Order Created', 'flexi-whatsapp-automation' ),
+	'order_status_completed'   => __( 'Order Completed', 'flexi-whatsapp-automation' ),
+	'order_status_processing'  => __( 'Order Processing', 'flexi-whatsapp-automation' ),
+	'order_status_cancelled'   => __( 'Order Cancelled', 'flexi-whatsapp-automation' ),
+	'order_status_refunded'    => __( 'Order Refunded', 'flexi-whatsapp-automation' ),
+	'payment_complete'         => __( 'Payment Complete', 'flexi-whatsapp-automation' ),
+	'checkout_complete'        => __( 'Checkout Complete', 'flexi-whatsapp-automation' ),
+	'user_register'            => __( 'User Registered', 'flexi-whatsapp-automation' ),
+	'user_login'               => __( 'User Login', 'flexi-whatsapp-automation' ),
+	'cart_abandoned'           => __( 'Cart Abandoned (Flexi Revive Cart)', 'flexi-whatsapp-automation' ),
+	'cart_recovered'           => __( 'Cart Recovered (Flexi Revive Cart)', 'flexi-whatsapp-automation' ),
+	'frc_reminder_stage_1'     => __( 'FRC Reminder — Stage 1 (Flexi Revive Cart)', 'flexi-whatsapp-automation' ),
+	'frc_reminder_stage_2'     => __( 'FRC Reminder — Stage 2 (Flexi Revive Cart)', 'flexi-whatsapp-automation' ),
+	'frc_reminder_stage_3'     => __( 'FRC Reminder — Stage 3 (Flexi Revive Cart)', 'flexi-whatsapp-automation' ),
+	'custom'                   => __( 'Custom Trigger', 'flexi-whatsapp-automation' ),
 );
 $events = apply_filters( 'fwa_automation_events', $events );
 ?>

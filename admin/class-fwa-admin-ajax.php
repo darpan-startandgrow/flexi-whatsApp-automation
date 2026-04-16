@@ -143,9 +143,12 @@ class FWA_Admin_AJAX {
 		$this->verify_request();
 
 		$args = array(
-			'instance_id' => isset( $_POST['instance_id'] ) ? sanitize_text_field( wp_unslash( $_POST['instance_id'] ) ) : '',
-			'name'        => isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '',
-			'token'       => isset( $_POST['token'] ) ? sanitize_text_field( wp_unslash( $_POST['token'] ) ) : '',
+			'instance_id'  => isset( $_POST['instance_id'] ) ? sanitize_text_field( wp_unslash( $_POST['instance_id'] ) ) : '',
+			'name'         => isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '',
+			// Accept 'access_token' (new) or legacy 'token'.
+			'access_token' => isset( $_POST['access_token'] ) ? sanitize_text_field( wp_unslash( $_POST['access_token'] ) )
+				: ( isset( $_POST['token'] ) ? sanitize_text_field( wp_unslash( $_POST['token'] ) ) : '' ),
+			'phone_number' => isset( $_POST['phone_number'] ) ? sanitize_text_field( wp_unslash( $_POST['phone_number'] ) ) : '',
 		);
 
 		$manager = new FWA_Instance_Manager();
@@ -155,7 +158,10 @@ class FWA_Admin_AJAX {
 			wp_send_json_error( array( 'message' => $result->get_error_message() ) );
 		}
 
-		wp_send_json_success( array( 'instance' => $result ) );
+		wp_send_json_success( array(
+			'id'       => $result,
+			'instance' => array( 'id' => $result ),
+		) );
 	}
 
 	/**
@@ -888,29 +894,30 @@ class FWA_Admin_AJAX {
 		$total_msgs    = is_array( $all_messages ) && isset( $all_messages['total'] ) ? $all_messages['total'] : 0;
 
 		$stats = array(
-			'instances'  => array(
+			'instances'       => array(
 				'total'     => is_array( $all_instances ) ? count( $all_instances ) : 0,
 				'connected' => $connected,
 				'by_status' => $status_counts,
 			),
-			'messages'   => array(
+			'instances_list'  => is_array( $all_instances ) ? array_values( $all_instances ) : array(),
+			'messages'        => array(
 				'today_sent'     => $msg_today_sent,
 				'today_received' => $msg_today_received,
 				'total'          => $total_msgs,
 			),
-			'campaigns'  => array(
+			'campaigns'       => array(
 				'active'    => $active_camps,
 				'completed' => $completed_camps,
 			),
-			'contacts'   => array(
+			'contacts'        => array(
 				'total'      => $contact_count,
 				'subscribed' => $subscribed,
 			),
-			'schedules'  => array(
+			'schedules'       => array(
 				'active'  => isset( $sched_stats['active'] ) ? $sched_stats['active'] : 0,
 				'pending' => $scheduler->get_pending_count(),
 			),
-			'logs'       => array(
+			'logs'            => array(
 				'today'        => isset( $log_stats['today'] ) ? $log_stats['today'] : 0,
 				'errors_today' => isset( $log_stats['errors_today'] ) ? $log_stats['errors_today'] : 0,
 			),
@@ -948,6 +955,10 @@ class FWA_Admin_AJAX {
 			'fwa_campaign_message_delay',
 			'fwa_auto_reconnect',
 			'fwa_health_check_interval',
+			// Feature toggles.
+			'fwa_enable_automation',
+			'fwa_enable_logging',
+			'fwa_enable_campaigns',
 			// OTP settings.
 			'fwa_otp_enabled',
 			'fwa_otp_role_redirects',
