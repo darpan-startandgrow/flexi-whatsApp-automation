@@ -103,7 +103,10 @@ class FWA_Admin_AJAX {
 	 * @since 1.0.0
 	 */
 	private function verify_request() {
-		check_ajax_referer( 'fwa_admin_nonce', 'nonce' );
+		// Accept the nonce from either the 'nonce' or '_ajax_nonce' field.
+		if ( ! check_ajax_referer( 'fwa_admin_nonce', 'nonce', false ) ) {
+			check_ajax_referer( 'fwa_admin_nonce', '_ajax_nonce' );
+		}
 
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_send_json_error( array(
@@ -701,10 +704,16 @@ class FWA_Admin_AJAX {
 		$sanitized = array();
 		foreach ( $rules as $rule ) {
 			$sanitized[] = array(
-				'event'      => isset( $rule['event'] ) ? sanitize_text_field( $rule['event'] ) : '',
-				'conditions' => isset( $rule['conditions'] ) ? array_map( 'sanitize_text_field', (array) $rule['conditions'] ) : array(),
-				'template'   => isset( $rule['template'] ) ? sanitize_textarea_field( $rule['template'] ) : '',
-				'enabled'    => ! empty( $rule['enabled'] ),
+				'id'           => isset( $rule['id'] ) ? sanitize_text_field( $rule['id'] ) : wp_generate_uuid4(),
+				'event'        => isset( $rule['event'] ) ? sanitize_text_field( $rule['event'] ) : '',
+				'conditions'   => isset( $rule['conditions'] ) && is_array( $rule['conditions'] ) ? $rule['conditions'] : array(),
+				'template'     => isset( $rule['template'] ) ? sanitize_textarea_field( $rule['template'] ) : '',
+				'enabled'      => ! empty( $rule['enabled'] ),
+				'instance_id'  => isset( $rule['instance_id'] ) ? absint( $rule['instance_id'] ) : 0,
+				'phone_field'  => isset( $rule['phone_field'] ) ? sanitize_text_field( $rule['phone_field'] ) : 'billing_phone',
+				'message_type' => isset( $rule['message_type'] ) ? sanitize_text_field( $rule['message_type'] ) : 'text',
+				'media_url'    => isset( $rule['media_url'] ) ? esc_url_raw( $rule['media_url'] ) : '',
+				'delay'        => isset( $rule['delay'] ) ? absint( $rule['delay'] ) : 0,
 			);
 		}
 
