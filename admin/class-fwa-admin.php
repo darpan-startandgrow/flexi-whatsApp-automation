@@ -114,9 +114,9 @@ class FWA_Admin {
 
 		// Hidden onboarding page (no menu item).
 		add_submenu_page(
-			null,
-			__( 'Setup Wizard', 'flexi-whatsapp-automation' ),
 			'',
+			__( 'Setup Wizard', 'flexi-whatsapp-automation' ),
+			__( 'Setup Wizard', 'flexi-whatsapp-automation' ),
 			'manage_options',
 			'fwa-onboarding',
 			array( $this, 'render_page' )
