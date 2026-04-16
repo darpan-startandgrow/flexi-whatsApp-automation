@@ -1,0 +1,253 @@
+/**
+ * Flexi WhatsApp Automation – OTP Login Styles
+ *
+ * @package Flexi_WhatsApp_Automation
+ * @since   1.1.0
+ */
+
+/* ==========================================================================
+   OTP Form Container
+   ========================================================================== */
+
+.fwa-otp-form {
+	max-width: 400px;
+	margin: 20px auto;
+	padding: 24px;
+	background: #fff;
+	border: 1px solid #e0e0e0;
+	border-radius: 12px;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.fwa-otp-form h3 {
+	margin: 0 0 8px;
+	font-size: 20px;
+	color: #222;
+}
+
+.fwa-otp-info {
+	font-size: 13px;
+	color: #666;
+	margin: 0 0 20px;
+	line-height: 1.5;
+}
+
+/* ==========================================================================
+   Form Fields
+   ========================================================================== */
+
+.fwa-otp-field {
+	margin-bottom: 16px;
+}
+
+.fwa-otp-field label {
+	display: block;
+	font-size: 13px;
+	font-weight: 600;
+	color: #444;
+	margin-bottom: 6px;
+}
+
+.fwa-otp-field small {
+	display: block;
+	font-size: 12px;
+	color: #888;
+	margin-top: 4px;
+}
+
+.fwa-otp-input {
+	width: 100%;
+	padding: 10px 14px;
+	border: 1px solid #d0d0d0;
+	border-radius: 8px;
+	font-size: 15px;
+	box-sizing: border-box;
+	transition: border-color 0.2s ease;
+}
+
+.fwa-otp-input:focus {
+	border-color: #25D366;
+	outline: none;
+	box-shadow: 0 0 0 2px rgba(37, 211, 102, 0.15);
+}
+
+.fwa-otp-code-input {
+	letter-spacing: 6px;
+	font-size: 22px;
+	text-align: center;
+	font-weight: 600;
+}
+
+/* ==========================================================================
+   Buttons
+   ========================================================================== */
+
+.fwa-otp-btn {
+	display: block;
+	width: 100%;
+	padding: 12px 20px;
+	background: #25D366;
+	color: #fff;
+	border: none;
+	border-radius: 8px;
+	font-size: 15px;
+	font-weight: 600;
+	cursor: pointer;
+	transition: background 0.2s ease;
+	margin-bottom: 8px;
+}
+
+.fwa-otp-btn:hover {
+	background: #1fbc5e;
+}
+
+.fwa-otp-btn:disabled {
+	background: #b0b0b0;
+	cursor: not-allowed;
+}
+
+.fwa-otp-link {
+	display: inline-block;
+	background: none;
+	border: none;
+	color: #25D366;
+	font-size: 13px;
+	cursor: pointer;
+	padding: 4px 0;
+	text-decoration: underline;
+}
+
+.fwa-otp-link:hover {
+	color: #1fbc5e;
+}
+
+.fwa-otp-link:disabled {
+	color: #999;
+	cursor: not-allowed;
+	text-decoration: none;
+}
+
+/* ==========================================================================
+   Status Messages
+   ========================================================================== */
+
+.fwa-otp-status {
+	margin-top: 12px;
+	font-size: 13px;
+	line-height: 1.5;
+}
+
+.fwa-otp-status-success {
+	color: #25D366;
+	font-weight: 500;
+}
+
+.fwa-otp-status-error {
+	color: #e04040;
+	font-weight: 500;
+}
+
+.fwa-otp-status-loading {
+	color: #666;
+}
+
+.fwa-otp-timer {
+	font-size: 12px;
+	color: #888;
+}
+
+/* ==========================================================================
+   Success State
+   ========================================================================== */
+
+.fwa-otp-success {
+	text-align: center;
+	padding: 20px 0;
+}
+
+.fwa-otp-check {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 56px;
+	height: 56px;
+	border-radius: 50%;
+	background: #25D366;
+	color: #fff;
+	font-size: 28px;
+	margin-bottom: 12px;
+}
+
+.fwa-otp-success p {
+	font-size: 16px;
+	font-weight: 600;
+	color: #222;
+}
+
+/* ==========================================================================
+   Verification Bar
+   ========================================================================== */
+
+.fwa-verify-bar {
+	background: #fff3cd;
+	border: 1px solid #ffc107;
+	border-radius: 8px;
+	padding: 14px 18px;
+	margin: 10px 0;
+}
+
+.fwa-verify-bar-content p {
+	margin: 0 0 10px;
+	font-size: 14px;
+	color: #664d03;
+}
+
+.fwa-verify-bar-form,
+.fwa-verify-bar-otp {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+}
+
+.fwa-verify-bar-form .fwa-otp-input,
+.fwa-verify-bar-otp .fwa-otp-input {
+	flex: 1;
+	padding: 8px 12px;
+	font-size: 14px;
+}
+
+.fwa-verify-bar .fwa-otp-btn {
+	flex-shrink: 0;
+	width: auto;
+	padding: 8px 16px;
+	font-size: 13px;
+	margin: 0;
+}
+
+/* Already logged in */
+.fwa-otp-logged-in {
+	text-align: center;
+	padding: 16px;
+	color: #666;
+}
+
+/* ==========================================================================
+   Responsive
+   ========================================================================== */
+
+@media (max-width: 480px) {
+	.fwa-otp-form {
+		margin: 10px;
+		padding: 18px;
+	}
+
+	.fwa-verify-bar-form,
+	.fwa-verify-bar-otp {
+		flex-direction: column;
+	}
+
+	.fwa-verify-bar .fwa-otp-btn {
+		width: 100%;
+	}
+}

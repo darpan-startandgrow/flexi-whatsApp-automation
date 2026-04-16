@@ -3,7 +3,7 @@
  * Plugin Name: Flexi WhatsApp Automation
  * Plugin URI:  https://github.com/darpan-startandgrow/flexi-whatsApp-automation
  * Description: WhatsApp Web-based messaging automation for WordPress & WooCommerce. Multi-account management, campaigns, scheduling, and logging. Works standalone or enhances Flexi Revive Cart when present.
- * Version:     1.0.0
+ * Version:     1.1.0
  * Author:      Darpan Sarmah
  * Author URI:  https://github.com/darpan-startandgrow
  * License:     GPL-2.0+
@@ -25,7 +25,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Plugin constants.
  */
-define( 'FWA_VERSION', '1.0.0' );
+define( 'FWA_VERSION', '1.1.0' );
 define( 'FWA_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'FWA_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'FWA_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );

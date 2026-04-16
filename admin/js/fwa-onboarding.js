@@ -1,6 +1,9 @@
 /**
  * Flexi WhatsApp Automation – Onboarding Wizard JavaScript
  *
+ * Phone number OTP verification is the primary onboarding method.
+ * QR code connection is secondary but required for WhatsApp session.
+ *
  * @package Flexi_WhatsApp_Automation
  * @since   1.0.0
  */
@@ -12,10 +15,13 @@
 
 	var Wizard = {
 		currentStep: 1,
-		totalSteps: 6,
-		apiValidated: false,
+		totalSteps: 5,
+		phoneVerified: false,
 		instanceCreated: false,
 		qrTimer: null,
+		otpTimer: null,
+		otpCountdown: 300,
+		verifiedPhone: '',
 
 		init: function () {
 			this.bindEvents();
@@ -35,17 +41,29 @@
 				self.skipWizard();
 			});
 
-			// Step 2: API validation.
-			$('#fwa-ob-validate-api').on('click', function () {
-				self.validateAPI();
+			// Step 1: Phone entry + OTP send.
+			$('#fwa-ob-send-otp').on('click', function () {
+				self.sendOTP();
+			});
+			$('#fwa-ob-skip-phone').on('click', function (e) {
+				e.preventDefault();
+				self.skipPhoneVerification();
 			});
 
-			// Step 3: Instance creation.
+			// Step 2: OTP verification.
+			$('#fwa-ob-verify-otp').on('click', function () {
+				self.verifyOTP();
+			});
+			$('#fwa-ob-resend-otp').on('click', function () {
+				self.sendOTP();
+			});
+
+			// Step 3: Instance creation + QR.
 			$('#fwa-ob-create-instance').on('click', function () {
 				self.createInstance();
 			});
 
-			// Step 6: Test message and go to dashboard.
+			// Step 5: Test message and go to dashboard.
 			$('#fwa-ob-send-test').on('click', function () {
 				self.sendTest();
 			});
@@ -53,20 +71,31 @@
 				e.preventDefault();
 				self.completeOnboarding($(this).attr('href'));
 			});
+
+			// Allow Enter key on OTP input.
+			$('#fwa-ob-otp-code').on('keypress', function (e) {
+				if (e.which === 13) {
+					self.verifyOTP();
+				}
+			});
+
+			// Allow Enter key on phone input.
+			$('#fwa-ob-phone').on('keypress', function (e) {
+				if (e.which === 13) {
+					self.sendOTP();
+				}
+			});
 		},
 
 		nextStep: function () {
-			// Gate checks before advancing.
-			if (this.currentStep === 2 && !this.apiValidated) {
-				this.showStatus('#fwa-ob-api-status', 'error', fwa_admin.strings.error || 'Please validate API connection first.');
+			// Gate checks.
+			if (this.currentStep === 1 && !this.phoneVerified) {
+				this.showStatus('#fwa-ob-otp-send-status', 'error', fwa_admin.strings.otp_required || 'Please verify your phone number first, or skip this step.');
 				return;
 			}
 
 			if (this.currentStep === 4) {
 				this.saveConfig();
-			}
-
-			if (this.currentStep === 5) {
 				this.saveAutomation();
 			}
 
@@ -105,10 +134,13 @@
 			$('#fwa-wizard-prev').toggle(step > 1 && step < this.totalSteps);
 			$('#fwa-wizard-next').toggle(step < this.totalSteps);
 
-			if (step === 1) {
-				$('#fwa-wizard-next').text(fwa_admin.strings.get_started || 'Get Started →');
-			} else {
-				$('#fwa-wizard-next').text(fwa_admin.strings.continue || 'Continue →');
+			// Hide Next on steps that require user action.
+			if (step === 1 || step === 2) {
+				$('#fwa-wizard-next').toggle(false);
+			}
+
+			if (step === 1 && this.phoneVerified) {
+				$('#fwa-wizard-next').toggle(true);
 			}
 
 			// Stop QR polling when leaving step 3.
@@ -117,26 +149,173 @@
 				this.qrTimer = null;
 			}
 
-			// Build summary on step 6.
-			if (step === 6) {
+			// Stop OTP timer when leaving step 2.
+			if (step !== 2 && this.otpTimer) {
+				clearInterval(this.otpTimer);
+				this.otpTimer = null;
+			}
+
+			// Pre-fill test phone on step 5.
+			if (step === 5) {
 				this.buildSummary();
+				if (this.verifiedPhone) {
+					$('#fwa-ob-test-phone').val(this.verifiedPhone);
+				}
 			}
 		},
 
-		validateAPI: function () {
+		/* =================================================================
+		   Step 1 & 2: OTP Flow
+		   ================================================================= */
+
+		sendOTP: function () {
 			var self = this;
-			var $btn = $('#fwa-ob-validate-api');
+			var phone = $('#fwa-ob-phone').val().trim();
+
+			if (!phone) {
+				this.showStatus('#fwa-ob-otp-send-status', 'error', 'Please enter your WhatsApp phone number.');
+				return;
+			}
+
+			var $btn = $('#fwa-ob-send-otp');
+			$btn.prop('disabled', true).text(fwa_admin.strings.sending_otp || 'Sending…');
+			this.showStatus('#fwa-ob-otp-send-status', 'loading', 'Sending verification code via WhatsApp…');
+
+			$.post(fwa_admin.ajax_url, {
+				action: 'fwa_send_otp',
+				nonce: fwa_admin.nonce,
+				phone: phone
+			}, function (r) {
+				if (r.success) {
+					self.verifiedPhone = phone;
+					self.showStatus('#fwa-ob-otp-send-status', 'success', r.data.message);
+					// Move to step 2.
+					self.currentStep = 2;
+					self.updateUI();
+					self.startOTPCountdown();
+					$('#fwa-ob-otp-code').focus();
+				} else {
+					self.showStatus('#fwa-ob-otp-send-status', 'error', r.data ? r.data.message : 'Failed to send code.');
+				}
+			}).fail(function () {
+				self.showStatus('#fwa-ob-otp-send-status', 'error', 'Network error. Please try again.');
+			}).always(function () {
+				$btn.prop('disabled', false).text(fwa_admin.strings.send_otp || 'Send Verification Code');
+			});
+		},
+
+		verifyOTP: function () {
+			var self = this;
+			var otp = $('#fwa-ob-otp-code').val().trim();
+
+			if (!otp || otp.length !== 6 || !/^\d{6}$/.test(otp)) {
+				this.showStatus('#fwa-ob-otp-verify-status', 'error', 'Please enter a valid 6-digit numeric code.');
+				return;
+			}
+
+			var $btn = $('#fwa-ob-verify-otp');
+			$btn.prop('disabled', true).text('Verifying…');
+			this.showStatus('#fwa-ob-otp-verify-status', 'loading', 'Verifying code…');
+
+			$.post(fwa_admin.ajax_url, {
+				action: 'fwa_verify_otp',
+				nonce: fwa_admin.nonce,
+				phone: this.verifiedPhone,
+				otp: otp
+			}, function (r) {
+				if (r.success) {
+					self.phoneVerified = true;
+					self.showStatus('#fwa-ob-otp-verify-status', 'success', r.data.message);
+
+					// Stop countdown.
+					if (self.otpTimer) {
+						clearInterval(self.otpTimer);
+						self.otpTimer = null;
+					}
+
+					// Auto-advance to step 3 after a brief delay.
+					setTimeout(function () {
+						self.currentStep = 3;
+						self.updateUI();
+					}, 1500);
+				} else {
+					self.showStatus('#fwa-ob-otp-verify-status', 'error', r.data ? r.data.message : 'Verification failed.');
+				}
+			}).fail(function () {
+				self.showStatus('#fwa-ob-otp-verify-status', 'error', 'Network error. Please try again.');
+			}).always(function () {
+				$btn.prop('disabled', false).text('Verify Code');
+			});
+		},
+
+		startOTPCountdown: function () {
+			var self = this;
+			this.otpCountdown = 300; // 5 minutes.
+
+			// Disable resend button initially.
+			$('#fwa-ob-resend-otp').prop('disabled', true);
+
+			if (this.otpTimer) {
+				clearInterval(this.otpTimer);
+			}
+
+			this.otpTimer = setInterval(function () {
+				self.otpCountdown--;
+
+				if (self.otpCountdown <= 0) {
+				clearInterval(self.otpTimer);
+				self.otpTimer = null;
+				$('#fwa-ob-otp-timer').text(fwa_admin.strings.code_expired || 'Code has expired. Please request a new one.');
+				$('#fwa-ob-resend-otp').prop('disabled', false);
+				return;
+			}
+
+			var minutes = Math.floor(self.otpCountdown / 60);
+				var seconds = self.otpCountdown % 60;
+				var display = minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
+
+				$('#fwa-ob-otp-timer').text(
+					(fwa_admin.strings.code_expires || 'Code expires in') + ' ' + display
+				);
+
+				// Enable resend after 30 seconds.
+				if (self.otpCountdown <= 270) {
+					$('#fwa-ob-resend-otp').prop('disabled', false);
+				}
+			}, 1000);
+		},
+
+		skipPhoneVerification: function () {
+			this.phoneVerified = true;
+			this.currentStep = 3;
+			this.updateUI();
+		},
+
+		/* =================================================================
+		   Step 3: WhatsApp Connection
+		   ================================================================= */
+
+		createInstance: function () {
+			var self = this;
+			var $btn = $('#fwa-ob-create-instance');
+			var name = $('#fwa-ob-instance-name').val().trim();
 			var url = $('#fwa-ob-api-url').val().trim();
 			var key = $('#fwa-ob-api-key').val().trim();
 
 			if (!url || !key) {
-				this.showStatus('#fwa-ob-api-status', 'error', 'Please enter both API URL and API key.');
+				this.showStatus('#fwa-ob-connection-status', 'error', 'Please enter both API URL and API key.');
 				return;
 			}
 
-			$btn.prop('disabled', true).text('Validating…');
-			this.showStatus('#fwa-ob-api-status', 'loading', 'Testing connection…');
+			if (!name) {
+				name = 'My WhatsApp';
+				$('#fwa-ob-instance-name').val(name);
+			}
 
+			$btn.prop('disabled', true).text('Connecting…');
+			this.showStatus('#fwa-ob-connection-status', 'loading', 'Saving API settings and creating instance…');
+
+			// Save API settings first.
 			$.post(fwa_admin.ajax_url, {
 				action: 'fwa_save_settings',
 				_ajax_nonce: fwa_admin.nonce,
@@ -145,29 +324,20 @@
 				fwa_global_api_token: key
 			}, function (r) {
 				if (r.success) {
-					self.apiValidated = true;
-					self.showStatus('#fwa-ob-api-status', 'success', 'Connection successful! API settings saved.');
+					// Now create instance.
+					self.doCreateInstance(name, $btn);
 				} else {
-					self.showStatus('#fwa-ob-api-status', 'error', r.data ? r.data.message : 'Connection failed.');
+					self.showStatus('#fwa-ob-connection-status', 'error', r.data ? r.data.message : 'Failed to save API settings.');
+					$btn.prop('disabled', false).text('Connect WhatsApp');
 				}
 			}).fail(function () {
-				self.showStatus('#fwa-ob-api-status', 'error', 'Request failed. Check your network.');
-			}).always(function () {
-				$btn.prop('disabled', false).text('Validate Connection');
+				self.showStatus('#fwa-ob-connection-status', 'error', 'Request failed. Check your network.');
+				$btn.prop('disabled', false).text('Connect WhatsApp');
 			});
 		},
 
-		createInstance: function () {
+		doCreateInstance: function (name, $btn) {
 			var self = this;
-			var $btn = $('#fwa-ob-create-instance');
-			var name = $('#fwa-ob-instance-name').val().trim();
-
-			if (!name) {
-				name = 'My WhatsApp';
-				$('#fwa-ob-instance-name').val(name);
-			}
-
-			$btn.prop('disabled', true).text('Creating…');
 
 			$.post(fwa_admin.ajax_url, {
 				action: 'fwa_create_instance',
@@ -175,12 +345,12 @@
 				name: name,
 				instance_id: 'auto_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8),
 				access_token: '',
-				phone_number: ''
+				phone_number: self.verifiedPhone || ''
 			}, function (r) {
 				if (r.success) {
 					self.instanceCreated = true;
 					self.instanceId = r.data.id || r.data.instance_id;
-					self.showStatus('#fwa-ob-connection-status', 'success', 'Instance created! Scan QR code below.');
+					self.showStatus('#fwa-ob-connection-status', 'success', 'Instance created! Scan QR code below with WhatsApp on your phone.');
 					self.loadQR();
 				} else {
 					self.showStatus('#fwa-ob-connection-status', 'error', r.data ? r.data.message : 'Failed to create instance.');
@@ -188,7 +358,7 @@
 			}).fail(function () {
 				self.showStatus('#fwa-ob-connection-status', 'error', 'Request failed.');
 			}).always(function () {
-				$btn.prop('disabled', false).text('Create Instance');
+				$btn.prop('disabled', false).text('Connect WhatsApp');
 			});
 		},
 
@@ -235,7 +405,7 @@
 				id: self.instanceId
 			}, function (r) {
 				if (r.success && r.data.status === 'connected') {
-					self.showStatus('#fwa-ob-connection-status', 'success', 'WhatsApp connected!');
+					self.showStatus('#fwa-ob-connection-status', 'success', 'WhatsApp connected successfully!');
 					$('#fwa-ob-qr-area').html('<p class="fwa-text-success"><span class="dashicons dashicons-yes-alt"></span> Connected</p>');
 					if (self.qrTimer) {
 						clearInterval(self.qrTimer);
@@ -245,8 +415,11 @@
 			});
 		},
 
+		/* =================================================================
+		   Step 4: Configuration
+		   ================================================================= */
+
 		saveConfig: function () {
-			var instance = $('#fwa-ob-default-instance').val();
 			var automation = $('#fwa-ob-enable-automation').is(':checked') ? 'yes' : 'no';
 			var logging = $('#fwa-ob-enable-logging').is(':checked') ? 'yes' : 'no';
 			var campaigns = $('#fwa-ob-enable-campaigns').is(':checked') ? 'yes' : 'no';
@@ -255,7 +428,6 @@
 				action: 'fwa_save_settings',
 				_ajax_nonce: fwa_admin.nonce,
 				tab: 'general',
-				fwa_default_instance: instance,
 				fwa_enable_automation: automation,
 				fwa_enable_logging: logging,
 				fwa_enable_campaigns: campaigns
@@ -298,13 +470,17 @@
 			}
 		},
 
+		/* =================================================================
+		   Step 5: Finish
+		   ================================================================= */
+
 		buildSummary: function () {
 			var items = [];
-			if (this.apiValidated) {
-				items.push('✅ API connection configured');
+			if (this.phoneVerified && this.verifiedPhone) {
+				items.push('✅ Phone verified: ' + this.verifiedPhone);
 			}
 			if (this.instanceCreated) {
-				items.push('✅ WhatsApp instance created');
+				items.push('✅ WhatsApp instance created & connected');
 			}
 			if ($('#fwa-ob-enable-automation').is(':checked')) {
 				items.push('✅ Automation enabled');
@@ -364,6 +540,10 @@
 				$('#fwa-ob-send-test').prop('disabled', false).text('Send Test');
 			});
 		},
+
+		/* =================================================================
+		   Helpers
+		   ================================================================= */
 
 		skipWizard: function () {
 			if (!confirm('Skip the setup wizard? You can configure everything manually from Settings.')) {

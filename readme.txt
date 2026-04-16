@@ -4,7 +4,7 @@ Tags: whatsapp, automation, woocommerce, messaging, campaigns
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.0.0
+Stable tag: 1.1.0
 License: GPL-2.0+
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -21,6 +21,9 @@ WhatsApp Web-based messaging automation for WordPress & WooCommerce. Multi-accou
 * **Full Message Types** – Send text, images, videos, audio, documents, contacts, polls, and link previews.
 * **Campaign Engine** – Bulk messaging with contact selection, scheduling, delivery tracking, and rate limiting.
 * **Automated Workflows** – Hook into WooCommerce events (new order, status changes, payment) and WordPress events (user registration, login) to trigger messages automatically.
+* **OTP Verification** – Phone number verification via WhatsApp OTP. Login, signup, and checkout verification shortcodes.
+* **Chat Widget** – Floating WhatsApp chat button with multi-agent support, display rules, and analytics.
+* **Template Engine** – 40+ dynamic placeholders for orders, users, and site data with a built-in cheat-sheet.
 * **Scheduled Messages** – One-time and recurring scheduled messages via WP Cron with retry logic.
 * **Contact Management** – Import/export contacts (CSV), tagging, subscription management, and WooCommerce customer sync.
 * **Dashboard Widget** – Quick-send form, instance status overview, and recent activity right on the WordPress dashboard.
@@ -89,6 +92,18 @@ Yes. Use the `fwa_trigger_automation` action or any of the documented hooks. See
 
 == Changelog ==
 
+= 1.1.0 =
+* NEW: Phone number OTP verification as primary onboarding method.
+* NEW: Frontend OTP login shortcode [fwa_otp_login].
+* NEW: Phone verification shortcode [fwa_otp_verify].
+* NEW: Phone verification bar shortcode [fwa_phone_verify_bar].
+* NEW: WhatsApp Chat Widget with multi-agent support.
+* NEW: Chat widget shortcodes [fwa_chat_widget] and [fwa_chat_button].
+* NEW: Message template engine with 40+ placeholders.
+* NEW: Placeholder cheat-sheet API for admin UI.
+* IMPROVED: Onboarding wizard with 5-step OTP flow.
+* IMPROVED: Security with SHA-256 hashed OTP storage and rate limiting.
+
 = 1.0.0 =
 * Initial release.
 * Multi-instance WhatsApp account management.
@@ -103,6 +118,9 @@ Yes. Use the `fwa_trigger_automation` action or any of the documented hooks. See
 * Deactivation data-cleanup prompt.
 
 == Upgrade Notice ==
+
+= 1.1.0 =
+New: OTP login, chat widget, template engine. Onboarding wizard now uses phone verification as primary method.
 
 = 1.0.0 =
 Initial release.

@@ -72,6 +72,15 @@ if ( ! defined( 'ABSPATH' ) ) {
         </form>
     </div>
 
+    <!-- Campaign Analytics Modal -->
+    <div id="fwa-campaign-stats-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:100000;">
+        <div style="background:#fff;max-width:580px;margin:80px auto;padding:24px;border-radius:6px;max-height:80vh;overflow:auto;">
+            <h2 id="fwa-stats-title"></h2>
+            <div id="fwa-stats-content"></div>
+            <p><button type="button" class="button" id="fwa-stats-close"><?php echo esc_html__( 'Close', 'flexi-whatsapp-automation' ); ?></button></p>
+        </div>
+    </div>
+
     <!-- Campaigns Table -->
     <table class="widefat striped" id="fwa-campaigns-table" style="margin-top:20px;">
         <thead>
@@ -117,8 +126,13 @@ jQuery(document).ready(function($) {
                     var color = statusColors[c.status] || '#999';
                     var stats = (c.sent || 0) + ' / ' + (c.delivered || 0) + ' / ' + (c.read || 0) + ' / ' + (c.failed || 0);
                     var actions = '';
-                    if (c.status === 'draft' || c.status === 'paused') actions += '<button class="button button-small fwa-camp-start" data-id="' + esc(c.id) + '">' + <?php echo wp_json_encode( esc_html__( 'Start', 'flexi-whatsapp-automation' ) ); ?> + '</button> ';
+                    if (c.status === 'draft') actions += '<button class="button button-small fwa-camp-start" data-id="' + esc(c.id) + '">' + <?php echo wp_json_encode( esc_html__( 'Start', 'flexi-whatsapp-automation' ) ); ?> + '</button> ';
+                    if (c.status === 'paused') {
+                        actions += '<button class="button button-small fwa-camp-start"  data-id="' + esc(c.id) + '">' + <?php echo wp_json_encode( esc_html__( 'Start', 'flexi-whatsapp-automation' ) ); ?> + '</button> ';
+                        actions += '<button class="button button-small fwa-camp-resume" data-id="' + esc(c.id) + '">' + <?php echo wp_json_encode( esc_html__( 'Resume', 'flexi-whatsapp-automation' ) ); ?> + '</button> ';
+                    }
                     if (c.status === 'running') actions += '<button class="button button-small fwa-camp-pause" data-id="' + esc(c.id) + '">' + <?php echo wp_json_encode( esc_html__( 'Pause', 'flexi-whatsapp-automation' ) ); ?> + '</button> ';
+                    actions += '<button class="button button-small fwa-camp-stats" data-id="' + esc(c.id) + '" data-name="' + esc(c.name) + '">' + <?php echo wp_json_encode( esc_html__( 'Stats', 'flexi-whatsapp-automation' ) ); ?> + '</button> ';
                     actions += '<button class="button button-small button-link-delete fwa-camp-delete" data-id="' + esc(c.id) + '">' + <?php echo wp_json_encode( esc_html__( 'Delete', 'flexi-whatsapp-automation' ) ); ?> + '</button>';
                     tbody.append(
                         '<tr>' +
@@ -167,14 +181,60 @@ jQuery(document).ready(function($) {
     });
 
     $(document).on('click', '.fwa-camp-start', function() {
-        $.post(fwa_admin.ajax_url, { action: 'fwa_campaign_action', _ajax_nonce: fwa_admin.nonce, campaign_id: $(this).data('id'), campaign_action: 'start' }, function() { loadCampaigns(); });
+        $.post(fwa_admin.ajax_url, { action: 'fwa_start_campaign', _ajax_nonce: fwa_admin.nonce, id: $(this).data('id') }, function() { loadCampaigns(); });
+    });
+    $(document).on('click', '.fwa-camp-resume', function() {
+        $.post(fwa_admin.ajax_url, { action: 'fwa_resume_campaign', _ajax_nonce: fwa_admin.nonce, id: $(this).data('id') }, function() { loadCampaigns(); });
     });
     $(document).on('click', '.fwa-camp-pause', function() {
-        $.post(fwa_admin.ajax_url, { action: 'fwa_campaign_action', _ajax_nonce: fwa_admin.nonce, campaign_id: $(this).data('id'), campaign_action: 'pause' }, function() { loadCampaigns(); });
+        $.post(fwa_admin.ajax_url, { action: 'fwa_pause_campaign', _ajax_nonce: fwa_admin.nonce, id: $(this).data('id') }, function() { loadCampaigns(); });
     });
     $(document).on('click', '.fwa-camp-delete', function() {
         if (!confirm(<?php echo wp_json_encode( esc_html__( 'Delete this campaign?', 'flexi-whatsapp-automation' ) ); ?>)) return;
-        $.post(fwa_admin.ajax_url, { action: 'fwa_delete_campaign', _ajax_nonce: fwa_admin.nonce, campaign_id: $(this).data('id') }, function() { loadCampaigns(); });
+        $.post(fwa_admin.ajax_url, { action: 'fwa_delete_campaign', _ajax_nonce: fwa_admin.nonce, id: $(this).data('id') }, function() { loadCampaigns(); });
     });
+
+    // Campaign analytics
+    $(document).on('click', '.fwa-camp-stats', function() {
+        var id   = $(this).data('id');
+        var name = $(this).data('name');
+        $('#fwa-stats-title').text(name + ' — <?php echo esc_js( __( 'Analytics', 'flexi-whatsapp-automation' ) ); ?>');
+        $('#fwa-stats-content').html('<p><?php echo esc_js( __( 'Loading…', 'flexi-whatsapp-automation' ) ); ?></p>');
+        $('#fwa-campaign-stats-modal').show();
+        $.post(fwa_admin.ajax_url, { action: 'fwa_get_campaign_stats', _ajax_nonce: fwa_admin.nonce, id: id }, function(r) {
+            if (!r.success) {
+                $('#fwa-stats-content').html('<p style="color:#dc3232;">' + (r.data && r.data.message ? esc(r.data.message) : '<?php echo esc_js( __( 'Error loading stats.', 'flexi-whatsapp-automation' ) ); ?>') + '</p>');
+                return;
+            }
+            var c  = r.data.campaign;
+            var bs = r.data.by_status;
+            var total = parseInt(c.total_recipients) || 0;
+            function pct(n) { return total > 0 ? ((parseInt(n) / total) * 100).toFixed(1) + '%' : '—'; }
+            var html =
+                '<table class="widefat striped" style="margin-bottom:15px;">' +
+                '<tr><th><?php echo esc_js( __( 'Status', 'flexi-whatsapp-automation' ) ); ?></th><td><strong>' + esc(c.status) + '</strong></td></tr>' +
+                '<tr><th><?php echo esc_js( __( 'Total Recipients', 'flexi-whatsapp-automation' ) ); ?></th><td>' + esc(total) + '</td></tr>' +
+                '<tr><th><?php echo esc_js( __( 'Sent', 'flexi-whatsapp-automation' ) ); ?></th><td>' + esc(bs.sent) + ' (' + pct(bs.sent) + ')</td></tr>' +
+                '<tr><th><?php echo esc_js( __( 'Delivered', 'flexi-whatsapp-automation' ) ); ?></th><td>' + esc(bs.delivered) + ' (' + pct(bs.delivered) + ')</td></tr>' +
+                '<tr><th><?php echo esc_js( __( 'Read', 'flexi-whatsapp-automation' ) ); ?></th><td>' + esc(bs.read) + ' (' + pct(bs.read) + ')</td></tr>' +
+                '<tr><th><?php echo esc_js( __( 'Failed', 'flexi-whatsapp-automation' ) ); ?></th><td>' + esc(bs.failed) + ' (' + pct(bs.failed) + ')</td></tr>' +
+                '<tr><th><?php echo esc_js( __( 'Pending', 'flexi-whatsapp-automation' ) ); ?></th><td>' + esc(bs.pending) + '</td></tr>' +
+                '</table>';
+            // Simple visual bar.
+            if (total > 0) {
+                html += '<div style="background:#eee;border-radius:4px;overflow:hidden;height:20px;margin-bottom:10px;">';
+                var bars = [ {n:bs.sent,c:'#0073aa'}, {n:bs.delivered,c:'#00a32a'}, {n:bs.read,c:'#46b450'}, {n:bs.failed,c:'#dc3232'} ];
+                $.each(bars, function(i,b) {
+                    var w = (parseInt(b.n) / total * 100).toFixed(2);
+                    if (w > 0) html += '<div style="display:inline-block;width:' + w + '%;background:' + b.c + ';height:20px;"></div>';
+                });
+                html += '</div>';
+            }
+            $('#fwa-stats-content').html(html);
+        });
+    });
+
+    $('#fwa-stats-close').on('click', function() { $('#fwa-campaign-stats-modal').hide(); });
+    $('#fwa-campaign-stats-modal').on('click', function(e) { if ($(e.target).is('#fwa-campaign-stats-modal')) { $(this).hide(); } });
 });
 </script>
