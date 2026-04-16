@@ -383,6 +383,11 @@ class FWA_Automation_Engine {
 	 * Sends a WhatsApp message as an alternative or complement to the
 	 * email reminder at the given stage.
 	 *
+	 * Stage 1 is a free FRC feature. Stages 2+ are PRO-only features
+	 * (Urgency and Incentive/Discount templates). If FRC Pro is not
+	 * installed and licensed, PRO stages are silently ignored to prevent
+	 * unintended feature leakage.
+	 *
 	 * @since 1.0.0
 	 *
 	 * @param mixed  $cart  Cart data (object or array).
@@ -390,6 +395,13 @@ class FWA_Automation_Engine {
 	 * @return void
 	 */
 	public function on_frc_reminder( $cart, $stage ) {
+		$stage_num = absint( $stage );
+
+		// Stages 2+ require FRC Pro to be installed, active, and licensed.
+		if ( $stage_num >= 2 && ! fwa_is_frc_pro_licensed() ) {
+			return;
+		}
+
 		$data = array(
 			'cart'  => $cart,
 			'stage' => $stage,
@@ -506,10 +518,44 @@ class FWA_Automation_Engine {
 			return $rules;
 		}
 
-		return array_filter( $rules, function ( $rule ) use ( $event ) {
-			return isset( $rule['event'] ) && $rule['event'] === $event
-				&& ! empty( $rule['enabled'] );
+		// PRO-only events must be gated at execution time as well.
+		$pro_gated_events = $this->get_pro_gated_events();
+
+		return array_filter( $rules, function ( $rule ) use ( $event, $pro_gated_events ) {
+			if ( ! isset( $rule['event'] ) || $rule['event'] !== $event || empty( $rule['enabled'] ) ) {
+				return false;
+			}
+
+			// Block execution of PRO-gated events when PRO isn't licensed.
+			if ( isset( $pro_gated_events[ $rule['event'] ] ) && ! fwa_is_frc_pro_licensed() ) {
+				return false;
+			}
+
+			return true;
 		} );
+	}
+
+	/**
+	 * Get events that require FRC Pro to be licensed.
+	 *
+	 * @since 1.2.0
+	 *
+	 * @return array Associative array of event_slug => true.
+	 */
+	private function get_pro_gated_events() {
+		$events = array(
+			'frc_reminder_stage_2' => true,
+			'frc_reminder_stage_3' => true,
+		);
+
+		/**
+		 * Filter the list of PRO-gated automation events.
+		 *
+		 * @since 1.2.0
+		 *
+		 * @param array $events Associative array of event_slug => true.
+		 */
+		return apply_filters( 'fwa_pro_gated_events', $events );
 	}
 
 	/**
@@ -723,14 +769,22 @@ class FWA_Automation_Engine {
 			'payment_complete'            => __( 'Payment Complete', 'flexi-whatsapp-automation' ),
 			'user_register'               => __( 'User Registration', 'flexi-whatsapp-automation' ),
 			'user_login'                  => __( 'User Login', 'flexi-whatsapp-automation' ),
-			'cart_abandoned'              => __( 'Cart Abandoned', 'flexi-whatsapp-automation' ),
-			'cart_recovered'              => __( 'Cart Recovered', 'flexi-whatsapp-automation' ),
-			'subscription_activated'      => __( 'Subscription Activated (WC Subscriptions)', 'flexi-whatsapp-automation' ),
-			'subscription_renewed'        => __( 'Subscription Renewed (WC Subscriptions)', 'flexi-whatsapp-automation' ),
-			'subscription_cancelled'      => __( 'Subscription Cancelled (WC Subscriptions)', 'flexi-whatsapp-automation' ),
-			'subscription_expired'        => __( 'Subscription Expired (WC Subscriptions)', 'flexi-whatsapp-automation' ),
-			'subscription_payment_failed' => __( 'Subscription Payment Failed (WC Subscriptions)', 'flexi-whatsapp-automation' ),
 		);
+
+		// FRC Free events — available when Flexi Revive Cart (free) is active.
+		if ( fwa_is_flexi_revive_cart_active() ) {
+			$events['cart_abandoned'] = __( 'Cart Abandoned', 'flexi-whatsapp-automation' );
+			$events['cart_recovered'] = __( 'Cart Recovered', 'flexi-whatsapp-automation' );
+		}
+
+		// WooCommerce Subscriptions — available when Subscriptions is active.
+		if ( class_exists( 'WC_Subscriptions' ) || function_exists( 'wcs_get_subscription' ) ) {
+			$events['subscription_activated']      = __( 'Subscription Activated (WC Subscriptions)', 'flexi-whatsapp-automation' );
+			$events['subscription_renewed']        = __( 'Subscription Renewed (WC Subscriptions)', 'flexi-whatsapp-automation' );
+			$events['subscription_cancelled']      = __( 'Subscription Cancelled (WC Subscriptions)', 'flexi-whatsapp-automation' );
+			$events['subscription_expired']        = __( 'Subscription Expired (WC Subscriptions)', 'flexi-whatsapp-automation' );
+			$events['subscription_payment_failed'] = __( 'Subscription Payment Failed (WC Subscriptions)', 'flexi-whatsapp-automation' );
+		}
 
 		/**
 		 * Filter the list of supported automation events.
