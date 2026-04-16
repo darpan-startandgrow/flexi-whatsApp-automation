@@ -58,6 +58,9 @@ class FWA_Activator {
 		add_option( 'fwa_debug_mode', 'no' );
 		add_option( 'fwa_rate_limit', 20 );
 		add_option( 'fwa_rate_limit_interval', 60 );
+
+		// Trigger onboarding redirect on first admin page load.
+		set_transient( 'fwa_activation_redirect', true, 30 );
 	}
 
 	/**

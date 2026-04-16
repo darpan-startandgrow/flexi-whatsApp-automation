@@ -34,6 +34,7 @@ class FWA_Admin {
 		'fwa-schedules'  => 'admin/views/schedules.php',
 		'fwa-logs'       => 'admin/views/logs.php',
 		'fwa-settings'   => 'admin/views/settings.php',
+		'fwa-onboarding' => 'admin/views/onboarding.php',
 	);
 
 	/**
@@ -50,9 +51,20 @@ class FWA_Admin {
 	/**
 	 * Fires on admin_init.
 	 *
+	 * Redirects to onboarding wizard on first activation.
+	 *
 	 * @since 1.0.0
 	 */
 	public function admin_init() {
+		// Redirect to onboarding on first activation.
+		if ( get_transient( 'fwa_activation_redirect' ) ) {
+			delete_transient( 'fwa_activation_redirect' );
+			if ( 'yes' !== get_option( 'fwa_onboarding_complete' ) && current_user_can( 'manage_options' ) ) {
+				wp_safe_redirect( admin_url( 'admin.php?page=fwa-onboarding' ) );
+				exit;
+			}
+		}
+
 		/**
 		 * Fires when the FWA admin initializes.
 		 *
@@ -100,6 +112,16 @@ class FWA_Admin {
 			);
 		}
 
+		// Hidden onboarding page (no menu item).
+		add_submenu_page(
+			null,
+			__( 'Setup Wizard', 'flexi-whatsapp-automation' ),
+			'',
+			'manage_options',
+			'fwa-onboarding',
+			array( $this, 'render_page' )
+		);
+
 		/**
 		 * Fires after FWA admin menus are registered.
 		 *
@@ -115,6 +137,9 @@ class FWA_Admin {
 	/**
 	 * Render the current admin page.
 	 *
+	 * Views provide their own page headers, so no <h1> is emitted here
+	 * to avoid duplication.
+	 *
 	 * @since 1.0.0
 	 */
 	public function render_page() {
@@ -125,10 +150,8 @@ class FWA_Admin {
 		}
 
 		$view_file = FWA_PLUGIN_DIR . $this->pages[ $page ];
-		$title     = $this->get_page_title( $page );
 
-		echo '<div class="wrap">';
-		echo '<h1>' . esc_html( $title ) . '</h1>';
+		echo '<div class="wrap fwa-wrap">';
 
 		/**
 		 * Fires before the FWA admin page content.
@@ -196,10 +219,11 @@ class FWA_Admin {
 			'fwa-admin',
 			'fwa_admin',
 			array(
-				'ajax_url' => admin_url( 'admin-ajax.php' ),
-				'nonce'    => wp_create_nonce( 'fwa_admin_nonce' ),
-				'api_base' => rest_url( 'fwa/v1/' ),
-				'strings'  => array(
+				'ajax_url'      => admin_url( 'admin-ajax.php' ),
+				'nonce'         => wp_create_nonce( 'fwa_admin_nonce' ),
+				'api_base'      => rest_url( 'fwa/v1/' ),
+				'dashboard_url' => admin_url( 'admin.php?page=fwa-dashboard' ),
+				'strings'       => array(
 					'confirm_delete' => __( 'Are you sure you want to delete this item? This action cannot be undone.', 'flexi-whatsapp-automation' ),
 					'sending'        => __( 'Sending…', 'flexi-whatsapp-automation' ),
 					'sent'           => __( 'Message sent successfully.', 'flexi-whatsapp-automation' ),
@@ -212,9 +236,26 @@ class FWA_Admin {
 					'connecting'     => __( 'Connecting…', 'flexi-whatsapp-automation' ),
 					'import_success' => __( 'Contacts imported successfully.', 'flexi-whatsapp-automation' ),
 					'export_success' => __( 'Export completed successfully.', 'flexi-whatsapp-automation' ),
+					'syncing'        => __( 'Syncing…', 'flexi-whatsapp-automation' ),
+					'rules_saved'    => __( 'Rules saved!', 'flexi-whatsapp-automation' ),
+					'edit'           => __( 'Edit', 'flexi-whatsapp-automation' ),
+					'delete'         => __( 'Delete', 'flexi-whatsapp-automation' ),
+					'sync_woo'       => __( 'Sync WooCommerce', 'flexi-whatsapp-automation' ),
+					'active_instance'=> __( 'Active Instance', 'flexi-whatsapp-automation' ),
 				),
 			)
 		);
+
+		// Enqueue onboarding script on the onboarding page.
+		if ( false !== strpos( $hook, 'fwa-onboarding' ) ) {
+			wp_enqueue_script(
+				'fwa-onboarding',
+				FWA_PLUGIN_URL . 'admin/js/fwa-onboarding.js',
+				array( 'jquery', 'fwa-admin' ),
+				FWA_VERSION,
+				true
+			);
+		}
 
 		/**
 		 * Fires after FWA admin scripts are enqueued.
@@ -265,6 +306,7 @@ class FWA_Admin {
 			'fwa-schedules'  => __( 'Schedules', 'flexi-whatsapp-automation' ),
 			'fwa-logs'       => __( 'Logs', 'flexi-whatsapp-automation' ),
 			'fwa-settings'   => __( 'Settings', 'flexi-whatsapp-automation' ),
+			'fwa-onboarding' => __( 'Setup Wizard', 'flexi-whatsapp-automation' ),
 		);
 
 		return isset( $titles[ $page ] ) ? $titles[ $page ] : __( 'WhatsApp Automation', 'flexi-whatsapp-automation' );
