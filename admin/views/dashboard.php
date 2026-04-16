@@ -9,9 +9,25 @@ $next_cron     = wp_next_scheduled( 'fwa_process_queue' );
 if ( false === $next_cron || ( $next_cron + 180 ) < time() ) {
     $cron_ok = false;
 }
+
+$api_configured = 'yes' === get_option( 'fwa_api_configured', 'no' );
+$api_url        = get_option( 'fwa_api_base_url', '' );
 ?>
 <div class="wrap fwa-dashboard">
     <h1><?php echo esc_html__( 'Dashboard', 'flexi-whatsapp-automation' ); ?></h1>
+
+    <?php if ( ! $api_configured || empty( $api_url ) ) : ?>
+    <div class="fwa-not-configured">
+        <span class="dashicons dashicons-warning"></span>
+        <div class="fwa-not-configured-text">
+            <strong><?php echo esc_html__( 'API Not Configured', 'flexi-whatsapp-automation' ); ?></strong>
+            <p>
+                <?php echo esc_html__( 'Your WhatsApp API connection has not been set up yet. Messages and automation will not work until the API is configured.', 'flexi-whatsapp-automation' ); ?>
+                <a href="<?php echo esc_url( admin_url( 'admin.php?page=fwa-settings&tab=api' ) ); ?>"><?php echo esc_html__( 'Configure API →', 'flexi-whatsapp-automation' ); ?></a>
+            </p>
+        </div>
+    </div>
+    <?php endif; ?>
 
     <?php if ( ! $cron_ok ) : ?>
     <div class="notice notice-warning">

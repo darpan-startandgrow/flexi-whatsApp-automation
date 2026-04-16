@@ -17,19 +17,32 @@ if ( ! defined( 'ABSPATH' ) ) {
             <table class="form-table">
                 <tr>
                     <th><label for="fwa-inst-name"><?php echo esc_html__( 'Name', 'flexi-whatsapp-automation' ); ?></label></th>
-                    <td><input type="text" id="fwa-inst-name" name="name" class="regular-text" required /></td>
+                    <td>
+                        <input type="text" id="fwa-inst-name" name="name" class="regular-text" required placeholder="<?php esc_attr_e( 'e.g., Support Line, Sales Team', 'flexi-whatsapp-automation' ); ?>" />
+                        <p class="description"><?php echo esc_html__( 'A friendly label to identify this WhatsApp instance in the dashboard and automation rules.', 'flexi-whatsapp-automation' ); ?></p>
+                    </td>
                 </tr>
                 <tr>
                     <th><label for="fwa-inst-id"><?php echo esc_html__( 'Instance ID', 'flexi-whatsapp-automation' ); ?></label></th>
-                    <td><input type="text" id="fwa-inst-id" name="instance_id" class="regular-text" required /></td>
+                    <td>
+                        <input type="text" id="fwa-inst-id" name="instance_id" class="regular-text" required placeholder="<?php esc_attr_e( 'e.g., default, my-instance-1', 'flexi-whatsapp-automation' ); ?>" />
+                        <p class="description"><?php echo esc_html__( 'The unique identifier used by your session engine to reference this WhatsApp session. Check your engine documentation for the expected format.', 'flexi-whatsapp-automation' ); ?></p>
+                    </td>
                 </tr>
                 <tr>
                     <th><label for="fwa-inst-token"><?php echo esc_html__( 'Access Token', 'flexi-whatsapp-automation' ); ?></label></th>
-                    <td><input type="password" id="fwa-inst-token" name="access_token" class="regular-text" required /></td>
+                    <td>
+                        <input type="password" id="fwa-inst-token" name="access_token" class="regular-text" required />
+                        <p class="description"><?php echo esc_html__( 'Instance-specific authentication token. If your engine uses a single global token, enter the same token here or leave it to use the global API token from Settings.', 'flexi-whatsapp-automation' ); ?></p>
+                    </td>
                 </tr>
                 <tr>
                     <th><label for="fwa-inst-phone"><?php echo esc_html__( 'Phone Number', 'flexi-whatsapp-automation' ); ?></label></th>
-                    <td><input type="text" id="fwa-inst-phone" name="phone_number" class="regular-text" placeholder="+1234567890" /></td>
+                    <td>
+                        <input type="text" id="fwa-inst-phone" name="phone_number" class="regular-text" placeholder="+1234567890" />
+                        <p class="description"><?php echo esc_html__( 'The WhatsApp phone number associated with this instance in E.164 format. This is optional but helps identify the instance.', 'flexi-whatsapp-automation' ); ?>
+                        <br><strong><?php echo esc_html__( 'Example:', 'flexi-whatsapp-automation' ); ?></strong> <code>+14155552671</code></p>
+                    </td>
                 </tr>
             </table>
             <p class="submit">
