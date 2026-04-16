@@ -215,7 +215,7 @@
 			}, function (r) {
 				if (r.success) {
 					self.instanceCreated = true;
-					self.instanceId = r.data.id || (r.data.instance && r.data.instance.id);
+					self.instanceId = r.data && r.data.id ? r.data.id : null;
 					self.showStatus('#fwa-ob-connection-status', 'success', 'Instance created! Scan the QR code below with WhatsApp on your phone.');
 					$('#fwa-wizard-next').show();
 					self.loadQR();
@@ -347,7 +347,7 @@
 
 				var html = '<table class="widefat striped" style="margin-top:8px;"><thead><tr><th>Active</th><th>Name</th><th>Status</th></tr></thead><tbody>';
 				$.each(instances, function (i, inst) {
-					var isActive = inst.is_active == 1 || inst.is_active === true || inst.is_active === 'yes';
+					var isActive = parseInt(inst.is_active, 10) === 1;
 					html += '<tr>' +
 						'<td><input type="radio" name="fwa-ob-active-instance" value="' + inst.id + '"' + (isActive ? ' checked' : '') + '></td>' +
 						'<td>' + $('<span>').text(inst.name || '').html() + '</td>' +

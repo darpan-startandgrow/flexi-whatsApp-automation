@@ -159,8 +159,7 @@ class FWA_Admin_AJAX {
 		}
 
 		wp_send_json_success( array(
-			'id'       => $result,
-			'instance' => array( 'id' => $result ),
+			'id' => $result,
 		) );
 	}
 
