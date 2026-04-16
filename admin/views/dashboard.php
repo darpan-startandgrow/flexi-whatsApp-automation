@@ -18,7 +18,7 @@ if ( false === $next_cron || ( $next_cron + 180 ) < time() ) {
         <p>
             <strong><?php echo esc_html__( 'WP-Cron Warning:', 'flexi-whatsapp-automation' ); ?></strong>
             <?php echo esc_html__( 'The queue-processor cron job is not firing on schedule. Scheduled messages and campaigns may be stuck. Please verify that WP-Cron is running every minute, or add a real system cron job (use 127.0.0.1 to avoid external DNS exposure):', 'flexi-whatsapp-automation' ); ?>
-            <code>* * * * * wget -q -O- http://127.0.0.1/wp-cron.php?doing_wp_cron &gt;/dev/null 2&gt;&amp;1</code>
+            <code>* * * * * wget -q -O- <?php echo esc_html( home_url( '/wp-cron.php?doing_wp_cron' ) ); ?> &gt;/dev/null 2&gt;&amp;1</code>
         </p>
     </div>
     <?php endif; ?>

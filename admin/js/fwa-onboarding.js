@@ -155,7 +155,7 @@
 
 		saveAPISettings: function () {
 			var self = this;
-			var url = $('#fwa-ob-api-url').val().trim();
+			var url = $('#fwa-ob-api-url').val().trim().replace(/\/+$/, '');
 			var key = $('#fwa-ob-api-key').val().trim();
 
 			if (!url || !key) {

@@ -898,7 +898,7 @@ class FWA_Automation_Engine {
 			'content' => $content,
 		) );
 
-		// Admin alert for new orders.
+		// Admin alert when a configured status notification fires.
 		if ( 'yes' === get_option( 'fwa_wc_admin_order_alert', 'no' ) ) {
 			$admin_phone = get_option( 'fwa_admin_alert_phone', '' );
 			if ( ! empty( $admin_phone ) ) {
