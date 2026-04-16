@@ -7,6 +7,7 @@ $tabs = array(
 	'general'    => __( 'General', 'flexi-whatsapp-automation' ),
 	'api'        => __( 'API Configuration', 'flexi-whatsapp-automation' ),
 	'messaging'  => __( 'Messaging', 'flexi-whatsapp-automation' ),
+	'otp'        => __( 'OTP Login', 'flexi-whatsapp-automation' ),
 	'automation' => __( 'Automation', 'flexi-whatsapp-automation' ),
 	'advanced'   => __( 'Advanced', 'flexi-whatsapp-automation' ),
 );
@@ -76,6 +77,72 @@ if ( ! array_key_exists( $active_tab, $tabs ) ) {
 							<code><?php echo esc_html( rest_url( 'fwa/v1/webhook' ) ); ?></code>
 						</p>
 					</td>
+				</tr>
+				<tr>
+					<th><?php esc_html_e( 'Webhook Signature Mode', 'flexi-whatsapp-automation' ); ?></th>
+					<td>
+						<select name="fwa_webhook_signature_mode">
+							<option value="secret" <?php selected( get_option( 'fwa_webhook_signature_mode', 'secret' ), 'secret' ); ?>><?php esc_html_e( 'Plain Secret (X-Webhook-Secret header)', 'flexi-whatsapp-automation' ); ?></option>
+							<option value="hmac"   <?php selected( get_option( 'fwa_webhook_signature_mode', 'secret' ), 'hmac' ); ?>><?php esc_html_e( 'HMAC-SHA256 (X-Hub-Signature-256)', 'flexi-whatsapp-automation' ); ?></option>
+						</select>
+						<p class="description"><?php esc_html_e( 'HMAC mode verifies a SHA-256 HMAC of the raw request body using the secret above.', 'flexi-whatsapp-automation' ); ?></p>
+					</td>
+				</tr>
+			</table>
+
+		<?php elseif ( 'otp' === $active_tab ) : ?>
+			<table class="form-table">
+				<tr>
+					<th><?php esc_html_e( 'Enable OTP Login', 'flexi-whatsapp-automation' ); ?></th>
+					<td><label><input type="checkbox" name="fwa_otp_enabled" value="yes" <?php checked( get_option( 'fwa_otp_enabled', 'yes' ), 'yes' ); ?>> <?php esc_html_e( 'Allow WhatsApp OTP-based login / signup', 'flexi-whatsapp-automation' ); ?></label></td>
+				</tr>
+				<tr>
+					<th><?php esc_html_e( 'Role-Based Redirects (JSON)', 'flexi-whatsapp-automation' ); ?></th>
+					<td>
+						<textarea name="fwa_otp_role_redirects" class="large-text" rows="4" placeholder='{"subscriber":"/my-account","customer":"/shop"}'><?php echo esc_textarea( get_option( 'fwa_otp_role_redirects', '' ) ); ?></textarea>
+						<p class="description"><?php esc_html_e( 'JSON mapping role to URL. Overrides default redirect.', 'flexi-whatsapp-automation' ); ?></p>
+					</td>
+				</tr>
+				<tr>
+					<th><?php esc_html_e( 'Default Redirect URL', 'flexi-whatsapp-automation' ); ?></th>
+					<td>
+						<input type="text" name="fwa_otp_default_redirect" class="regular-text" value="<?php echo esc_attr( get_option( 'fwa_otp_default_redirect', '' ) ); ?>" placeholder="/my-account">
+						<p class="description"><?php esc_html_e( 'Leave blank for homepage.', 'flexi-whatsapp-automation' ); ?></p>
+					</td>
+				</tr>
+				<tr>
+					<th><?php esc_html_e( 'Welcome Message (New Users)', 'flexi-whatsapp-automation' ); ?></th>
+					<td>
+						<textarea name="fwa_otp_welcome_message" class="large-text" rows="3"><?php echo esc_textarea( get_option( 'fwa_otp_welcome_message', '' ) ); ?></textarea>
+						<p class="description"><?php esc_html_e( 'Placeholders: {name}, {phone}, {site_name}. Leave blank to disable.', 'flexi-whatsapp-automation' ); ?></p>
+					</td>
+				</tr>
+				<tr>
+					<th><?php esc_html_e( 'Admin Alert Phone', 'flexi-whatsapp-automation' ); ?></th>
+					<td>
+						<input type="tel" name="fwa_otp_admin_alert_phone" class="regular-text" value="<?php echo esc_attr( get_option( 'fwa_otp_admin_alert_phone', '' ) ); ?>" placeholder="+1234567890">
+					</td>
+				</tr>
+				<tr>
+					<th><?php esc_html_e( 'Admin Alert Events', 'flexi-whatsapp-automation' ); ?></th>
+					<td>
+						<select name="fwa_otp_admin_alert_events">
+							<option value="all"      <?php selected( get_option( 'fwa_otp_admin_alert_events', 'all' ), 'all' ); ?>><?php esc_html_e( 'All Logins', 'flexi-whatsapp-automation' ); ?></option>
+							<option value="new_only" <?php selected( get_option( 'fwa_otp_admin_alert_events', 'all' ), 'new_only' ); ?>><?php esc_html_e( 'New Registrations Only', 'flexi-whatsapp-automation' ); ?></option>
+							<option value="none"     <?php selected( get_option( 'fwa_otp_admin_alert_events', 'all' ), 'none' ); ?>><?php esc_html_e( 'Disable', 'flexi-whatsapp-automation' ); ?></option>
+						</select>
+					</td>
+				</tr>
+				<tr>
+					<th><?php esc_html_e( 'Phone Blacklist', 'flexi-whatsapp-automation' ); ?></th>
+					<td>
+						<textarea name="fwa_otp_phone_blacklist" class="large-text" rows="4"><?php echo esc_textarea( get_option( 'fwa_otp_phone_blacklist', '' ) ); ?></textarea>
+						<p class="description"><?php esc_html_e( 'One phone number per line. These numbers are blocked from OTP login.', 'flexi-whatsapp-automation' ); ?></p>
+					</td>
+				</tr>
+				<tr>
+					<th><?php esc_html_e( 'WooCommerce Checkout OTP', 'flexi-whatsapp-automation' ); ?></th>
+					<td><label><input type="checkbox" name="fwa_otp_wc_checkout" value="yes" <?php checked( get_option( 'fwa_otp_wc_checkout', 'no' ), 'yes' ); ?>> <?php esc_html_e( 'Require phone OTP verification on checkout', 'flexi-whatsapp-automation' ); ?></label></td>
 				</tr>
 			</table>
 

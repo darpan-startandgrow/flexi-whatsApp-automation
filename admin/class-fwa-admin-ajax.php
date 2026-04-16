@@ -937,6 +937,7 @@ class FWA_Admin_AJAX {
 			'fwa_api_base_url',
 			'fwa_api_global_token',
 			'fwa_webhook_secret',
+			'fwa_webhook_signature_mode',
 			'fwa_rate_limit',
 			'fwa_rate_limit_interval',
 			'fwa_debug_mode',
@@ -947,6 +948,17 @@ class FWA_Admin_AJAX {
 			'fwa_campaign_message_delay',
 			'fwa_auto_reconnect',
 			'fwa_health_check_interval',
+			// OTP settings.
+			'fwa_otp_enabled',
+			'fwa_otp_role_redirects',
+			'fwa_otp_default_redirect',
+			'fwa_otp_welcome_message',
+			'fwa_otp_admin_alert_phone',
+			'fwa_otp_admin_alert_events',
+			'fwa_otp_phone_blacklist',
+			'fwa_otp_wc_checkout',
+			// Global admin alert phone (used by automation rules).
+			'fwa_admin_alert_phone',
 		);
 
 		$input = array();

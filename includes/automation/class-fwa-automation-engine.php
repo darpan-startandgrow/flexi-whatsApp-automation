@@ -55,6 +55,15 @@ class FWA_Automation_Engine {
 			add_action( 'woocommerce_payment_complete', array( $this, 'on_payment_complete' ), 10, 1 );
 		}
 
+		// --- WooCommerce Subscriptions hooks ---
+		if ( class_exists( 'WC_Subscriptions' ) || function_exists( 'wcs_get_subscription' ) ) {
+			add_action( 'woocommerce_subscription_status_active', array( $this, 'on_subscription_activated' ), 10, 1 );
+			add_action( 'woocommerce_subscription_renewed_payment', array( $this, 'on_subscription_renewed' ), 10, 2 );
+			add_action( 'woocommerce_subscription_status_cancelled', array( $this, 'on_subscription_cancelled' ), 10, 1 );
+			add_action( 'woocommerce_subscription_status_expired', array( $this, 'on_subscription_expired' ), 10, 1 );
+			add_action( 'woocommerce_subscription_payment_failed', array( $this, 'on_subscription_payment_failed' ), 10, 2 );
+		}
+
 		// --- Core WordPress hooks ---
 		add_action( 'user_register', array( $this, 'on_user_register' ), 10, 1 );
 		add_action( 'wp_login', array( $this, 'on_user_login' ), 10, 2 );
@@ -66,6 +75,9 @@ class FWA_Automation_Engine {
 
 		// --- Generic custom trigger ---
 		add_action( 'fwa_trigger_automation', array( $this, 'on_custom_trigger' ), 10, 2 );
+
+		// --- Delayed rule execution ---
+		add_action( 'fwa_execute_delayed_rule', array( $this, 'execute_delayed_rule_callback' ), 10, 2 );
 	}
 
 	/*--------------------------------------------------------------
@@ -514,15 +526,19 @@ class FWA_Automation_Engine {
 
 		foreach ( $rules as $rule ) {
 			$sanitised[] = array(
-				'id'           => isset( $rule['id'] ) ? sanitize_text_field( $rule['id'] ) : wp_generate_uuid4(),
-				'event'        => isset( $rule['event'] ) ? sanitize_key( $rule['event'] ) : '',
-				'enabled'      => ! empty( $rule['enabled'] ),
-				'instance_id'  => isset( $rule['instance_id'] ) ? absint( $rule['instance_id'] ) : 0,
-				'template'     => isset( $rule['template'] ) ? sanitize_textarea_field( $rule['template'] ) : '',
-				'phone_field'  => isset( $rule['phone_field'] ) ? sanitize_text_field( $rule['phone_field'] ) : 'billing_phone',
-				'conditions'   => isset( $rule['conditions'] ) && is_array( $rule['conditions'] ) ? $rule['conditions'] : array(),
-				'message_type' => isset( $rule['message_type'] ) ? sanitize_text_field( $rule['message_type'] ) : 'text',
-				'media_url'    => isset( $rule['media_url'] ) ? esc_url_raw( $rule['media_url'] ) : '',
+				'id'                   => isset( $rule['id'] ) ? sanitize_text_field( $rule['id'] ) : wp_generate_uuid4(),
+				'event'                => isset( $rule['event'] ) ? sanitize_key( $rule['event'] ) : '',
+				'enabled'              => ! empty( $rule['enabled'] ),
+				'instance_id'          => isset( $rule['instance_id'] ) ? absint( $rule['instance_id'] ) : 0,
+				'template'             => isset( $rule['template'] ) ? sanitize_textarea_field( $rule['template'] ) : '',
+				'phone_field'          => isset( $rule['phone_field'] ) ? sanitize_text_field( $rule['phone_field'] ) : 'billing_phone',
+				'conditions'           => isset( $rule['conditions'] ) && is_array( $rule['conditions'] ) ? $rule['conditions'] : array(),
+				'message_type'         => isset( $rule['message_type'] ) ? sanitize_text_field( $rule['message_type'] ) : 'text',
+				'media_url'            => isset( $rule['media_url'] ) ? esc_url_raw( $rule['media_url'] ) : '',
+				'delay'                => isset( $rule['delay'] ) ? absint( $rule['delay'] ) : 0,
+				'admin_alert'          => ! empty( $rule['admin_alert'] ),
+				'admin_alert_phone'    => isset( $rule['admin_alert_phone'] ) ? sanitize_text_field( $rule['admin_alert_phone'] ) : '',
+				'admin_alert_template' => isset( $rule['admin_alert_template'] ) ? sanitize_textarea_field( $rule['admin_alert_template'] ) : '',
 			);
 		}
 
@@ -693,19 +709,24 @@ class FWA_Automation_Engine {
 	 */
 	public function get_supported_events() {
 		$events = array(
-			'new_order'              => __( 'New Order', 'flexi-whatsapp-automation' ),
-			'order_status_processing' => __( 'Order Processing', 'flexi-whatsapp-automation' ),
-			'order_status_completed' => __( 'Order Completed', 'flexi-whatsapp-automation' ),
-			'order_status_cancelled' => __( 'Order Cancelled', 'flexi-whatsapp-automation' ),
-			'order_status_refunded'  => __( 'Order Refunded', 'flexi-whatsapp-automation' ),
-			'order_status_failed'    => __( 'Order Failed', 'flexi-whatsapp-automation' ),
-			'order_status_on-hold'   => __( 'Order On Hold', 'flexi-whatsapp-automation' ),
-			'checkout_complete'      => __( 'Checkout Complete', 'flexi-whatsapp-automation' ),
-			'payment_complete'       => __( 'Payment Complete', 'flexi-whatsapp-automation' ),
-			'user_register'          => __( 'User Registration', 'flexi-whatsapp-automation' ),
-			'user_login'             => __( 'User Login', 'flexi-whatsapp-automation' ),
-			'cart_abandoned'         => __( 'Cart Abandoned', 'flexi-whatsapp-automation' ),
-			'cart_recovered'         => __( 'Cart Recovered', 'flexi-whatsapp-automation' ),
+			'new_order'                   => __( 'New Order', 'flexi-whatsapp-automation' ),
+			'order_status_processing'     => __( 'Order Processing', 'flexi-whatsapp-automation' ),
+			'order_status_completed'      => __( 'Order Completed', 'flexi-whatsapp-automation' ),
+			'order_status_cancelled'      => __( 'Order Cancelled', 'flexi-whatsapp-automation' ),
+			'order_status_refunded'       => __( 'Order Refunded', 'flexi-whatsapp-automation' ),
+			'order_status_failed'         => __( 'Order Failed', 'flexi-whatsapp-automation' ),
+			'order_status_on-hold'        => __( 'Order On Hold', 'flexi-whatsapp-automation' ),
+			'checkout_complete'           => __( 'Checkout Complete', 'flexi-whatsapp-automation' ),
+			'payment_complete'            => __( 'Payment Complete', 'flexi-whatsapp-automation' ),
+			'user_register'               => __( 'User Registration', 'flexi-whatsapp-automation' ),
+			'user_login'                  => __( 'User Login', 'flexi-whatsapp-automation' ),
+			'cart_abandoned'              => __( 'Cart Abandoned', 'flexi-whatsapp-automation' ),
+			'cart_recovered'              => __( 'Cart Recovered', 'flexi-whatsapp-automation' ),
+			'subscription_activated'      => __( 'Subscription Activated (WC Subscriptions)', 'flexi-whatsapp-automation' ),
+			'subscription_renewed'        => __( 'Subscription Renewed (WC Subscriptions)', 'flexi-whatsapp-automation' ),
+			'subscription_cancelled'      => __( 'Subscription Cancelled (WC Subscriptions)', 'flexi-whatsapp-automation' ),
+			'subscription_expired'        => __( 'Subscription Expired (WC Subscriptions)', 'flexi-whatsapp-automation' ),
+			'subscription_payment_failed' => __( 'Subscription Payment Failed (WC Subscriptions)', 'flexi-whatsapp-automation' ),
 		);
 
 		/**
@@ -742,6 +763,38 @@ class FWA_Automation_Engine {
 			return;
 		}
 
+		// Per-rule delay (seconds). If > 0, schedule via wp_schedule_single_event.
+		$delay = isset( $rule['delay'] ) ? absint( $rule['delay'] ) : 0;
+		if ( $delay > 0 ) {
+			wp_schedule_single_event( time() + $delay, 'fwa_execute_delayed_rule', array( $rule, $data ) );
+			return;
+		}
+
+		$this->dispatch_rule( $rule, $data );
+	}
+
+	/**
+	 * WP cron callback: execute a rule that was delayed.
+	 *
+	 * @since 1.2.0
+	 *
+	 * @param array $rule Rule definition.
+	 * @param array $data Event data.
+	 */
+	public function execute_delayed_rule_callback( $rule, $data ) {
+		$this->dispatch_rule( $rule, $data );
+	}
+
+	/**
+	 * Send a message (and optional admin alert) for a rule.
+	 *
+	 * @since 1.2.0
+	 *
+	 * @param array $rule Rule definition.
+	 * @param array $data Event data.
+	 * @return void
+	 */
+	private function dispatch_rule( $rule, $data ) {
 		// Resolve phone.
 		$phone_field = isset( $rule['phone_field'] ) ? $rule['phone_field'] : 'billing_phone';
 		$phone       = $this->resolve_phone( $data, $phone_field );
@@ -770,6 +823,36 @@ class FWA_Automation_Engine {
 		}
 
 		$this->message_sender->send( $send_args );
+
+		// Admin-alert recipient: send a copy to a configured admin phone if the rule specifies it.
+		$admin_alert_phone = isset( $rule['admin_alert_phone'] ) ? sanitize_text_field( $rule['admin_alert_phone'] ) : '';
+		if ( empty( $admin_alert_phone ) ) {
+			// Fallback to global admin alert phone if rule enables it.
+			if ( ! empty( $rule['admin_alert'] ) ) {
+				$admin_alert_phone = get_option( 'fwa_admin_alert_phone', '' );
+			}
+		}
+
+		if ( ! empty( $admin_alert_phone ) ) {
+			$admin_content = $this->resolve_template(
+				isset( $rule['admin_alert_template'] ) && ! empty( $rule['admin_alert_template'] )
+					? $rule['admin_alert_template']
+					: '[Admin Alert] Event: ' . ( isset( $data['event'] ) ? $data['event'] : '' ) . ' | Customer: {phone} | Order: {order_id}',
+				$data
+			);
+
+			$admin_send_args = array(
+				'to'      => $admin_alert_phone,
+				'type'    => 'text',
+				'content' => $admin_content,
+			);
+
+			if ( ! empty( $rule['instance_id'] ) ) {
+				$admin_send_args['instance_id'] = absint( $rule['instance_id'] );
+			}
+
+			$this->message_sender->send( $admin_send_args );
+		}
 	}
 
 	/**
@@ -803,5 +886,126 @@ class FWA_Automation_Engine {
 				? $order->get_date_created()->date( 'Y-m-d H:i:s' )
 				: current_time( 'mysql' ),
 		);
+	}
+
+	/*--------------------------------------------------------------
+	 * WooCommerce Subscriptions event handlers
+	 *------------------------------------------------------------*/
+
+	/**
+	 * Handle WooCommerce Subscription activated.
+	 *
+	 * @since 1.2.0
+	 *
+	 * @param WC_Subscription $subscription Subscription object.
+	 */
+	public function on_subscription_activated( $subscription ) {
+		$data  = $this->extract_subscription_data( $subscription, 'activated' );
+		$rules = $this->get_rules( 'subscription_activated' );
+		foreach ( $rules as $rule ) {
+			$this->execute_rule( $rule, $data );
+		}
+		do_action( 'fwa_automation_triggered', 'subscription_activated', $subscription );
+	}
+
+	/**
+	 * Handle WooCommerce Subscription renewal payment.
+	 *
+	 * @since 1.2.0
+	 *
+	 * @param WC_Order        $renewal_order Renewal order object.
+	 * @param WC_Subscription $subscription  Subscription object.
+	 */
+	public function on_subscription_renewed( $renewal_order, $subscription ) {
+		$data  = $this->extract_subscription_data( $subscription, 'renewed' );
+		if ( is_object( $renewal_order ) && method_exists( $renewal_order, 'get_id' ) ) {
+			$data['renewal_order_id'] = $renewal_order->get_id();
+			$data['renewal_total']    = $renewal_order->get_total();
+		}
+		$rules = $this->get_rules( 'subscription_renewed' );
+		foreach ( $rules as $rule ) {
+			$this->execute_rule( $rule, $data );
+		}
+		do_action( 'fwa_automation_triggered', 'subscription_renewed', $subscription );
+	}
+
+	/**
+	 * Handle WooCommerce Subscription cancelled.
+	 *
+	 * @since 1.2.0
+	 *
+	 * @param WC_Subscription $subscription Subscription object.
+	 */
+	public function on_subscription_cancelled( $subscription ) {
+		$data  = $this->extract_subscription_data( $subscription, 'cancelled' );
+		$rules = $this->get_rules( 'subscription_cancelled' );
+		foreach ( $rules as $rule ) {
+			$this->execute_rule( $rule, $data );
+		}
+		do_action( 'fwa_automation_triggered', 'subscription_cancelled', $subscription );
+	}
+
+	/**
+	 * Handle WooCommerce Subscription expired.
+	 *
+	 * @since 1.2.0
+	 *
+	 * @param WC_Subscription $subscription Subscription object.
+	 */
+	public function on_subscription_expired( $subscription ) {
+		$data  = $this->extract_subscription_data( $subscription, 'expired' );
+		$rules = $this->get_rules( 'subscription_expired' );
+		foreach ( $rules as $rule ) {
+			$this->execute_rule( $rule, $data );
+		}
+		do_action( 'fwa_automation_triggered', 'subscription_expired', $subscription );
+	}
+
+	/**
+	 * Handle WooCommerce Subscription payment failed.
+	 *
+	 * @since 1.2.0
+	 *
+	 * @param WC_Subscription $subscription  Subscription object.
+	 * @param WC_Order        $renewal_order Failed renewal order.
+	 */
+	public function on_subscription_payment_failed( $subscription, $renewal_order ) {
+		$data  = $this->extract_subscription_data( $subscription, 'payment_failed' );
+		$rules = $this->get_rules( 'subscription_payment_failed' );
+		foreach ( $rules as $rule ) {
+			$this->execute_rule( $rule, $data );
+		}
+		do_action( 'fwa_automation_triggered', 'subscription_payment_failed', $subscription );
+	}
+
+	/**
+	 * Extract normalised data from a WooCommerce Subscription.
+	 *
+	 * @since 1.2.0
+	 *
+	 * @param WC_Subscription $subscription Subscription object.
+	 * @param string          $event        Event name.
+	 * @return array
+	 */
+	private function extract_subscription_data( $subscription, $event ) {
+		$data = array(
+			'event'               => $event,
+			'subscription_id'     => $subscription->get_id(),
+			'subscription_status' => $subscription->get_status(),
+			'customer_name'       => $subscription->get_billing_first_name() . ' ' . $subscription->get_billing_last_name(),
+			'email'               => $subscription->get_billing_email(),
+			'phone'               => $subscription->get_billing_phone(),
+			'billing_phone'       => $subscription->get_billing_phone(),
+			'order_total'         => $subscription->get_total(),
+			'date'                => current_time( 'mysql' ),
+		);
+
+		// Attach parent order ID if available.
+		$parent_order = $subscription->get_parent();
+		if ( $parent_order ) {
+			$data['order_id'] = $parent_order->get_id();
+		}
+
+		return $data;
 	}
 }

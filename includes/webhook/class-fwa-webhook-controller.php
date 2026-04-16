@@ -422,10 +422,17 @@ class FWA_Webhook_Controller {
 	/**
 	 * Verify the webhook secret header.
 	 *
-	 * Checks the X-Webhook-Secret header against the stored option.
-	 * If no secret is configured, allows the request with a warning.
+	 * Two verification modes are supported, controlled by the
+	 * fwa_webhook_signature_mode option:
 	 *
-	 * @since 1.0.0
+	 *  - 'secret' (default): Compare raw X-Webhook-Secret header value.
+	 *  - 'hmac':             Verify X-Hub-Signature-256 (HMAC-SHA256 of raw
+	 *                        body, prefixed with "sha256=") as used by
+	 *                        WhatsApp Cloud API, GitHub, etc.
+	 *
+	 * If no secret is configured, the request is allowed through.
+	 *
+	 * @since 1.0.0 (HMAC mode added 1.2.0)
 	 *
 	 * @param WP_REST_Request $request Incoming request.
 	 * @return bool
@@ -438,6 +445,25 @@ class FWA_Webhook_Controller {
 			return true;
 		}
 
+		$mode = get_option( 'fwa_webhook_signature_mode', 'secret' );
+
+		if ( 'hmac' === $mode ) {
+			// HMAC-SHA256 verification (WhatsApp Cloud API / GitHub style).
+			$signature_header = $request->get_header( 'X-Hub-Signature-256' );
+
+			if ( empty( $signature_header ) ) {
+				return false;
+			}
+
+			// Raw body needed for HMAC.
+			$raw_body = $request->get_body();
+
+			$expected = 'sha256=' . hash_hmac( 'sha256', $raw_body, $stored_secret );
+
+			return hash_equals( $expected, $signature_header );
+		}
+
+		// Default: plain secret header comparison.
 		$header_secret = $request->get_header( 'X-Webhook-Secret' );
 
 		return hash_equals( $stored_secret, (string) $header_secret );
