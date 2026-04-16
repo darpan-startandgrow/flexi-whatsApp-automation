@@ -35,6 +35,7 @@ class FWA_Admin_AJAX {
 			'fwa_set_active_instance',
 			'fwa_get_qr_code',
 			'fwa_get_instance_status',
+			'fwa_check_instance_status',
 			// Messages.
 			'fwa_send_message',
 			'fwa_get_messages',
@@ -49,7 +50,9 @@ class FWA_Admin_AJAX {
 			'fwa_delete_contact',
 			'fwa_import_contacts',
 			'fwa_export_contacts',
+			'fwa_sync_woo_contacts',
 			// Automation.
+			'fwa_get_automation_rules',
 			'fwa_save_automation_rules',
 			// Schedules.
 			'fwa_create_schedule',
@@ -62,6 +65,8 @@ class FWA_Admin_AJAX {
 			'fwa_get_dashboard_stats',
 			// Settings.
 			'fwa_save_settings',
+			// Onboarding.
+			'fwa_complete_onboarding',
 		);
 
 		foreach ( $actions as $action ) {
@@ -943,5 +948,108 @@ class FWA_Admin_AJAX {
 		}
 
 		wp_send_json_success( array( 'message' => __( 'Settings saved successfully.', 'flexi-whatsapp-automation' ) ) );
+	}
+
+	// =========================================================================
+	// Onboarding handler
+	// =========================================================================
+
+	/**
+	 * Mark the onboarding wizard as complete.
+	 *
+	 * @since 1.0.0
+	 */
+	public function handle_complete_onboarding() {
+		check_ajax_referer( 'fwa_admin_nonce' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'flexi-whatsapp-automation' ) ) );
+		}
+
+		update_option( 'fwa_onboarding_complete', 'yes' );
+		wp_send_json_success( array( 'message' => __( 'Onboarding complete.', 'flexi-whatsapp-automation' ) ) );
+	}
+
+	// =========================================================================
+	// Additional handlers for contacts & automation
+	// =========================================================================
+
+	/**
+	 * Handle syncing contacts from WooCommerce.
+	 *
+	 * @since 1.0.0
+	 */
+	public function handle_sync_woo_contacts() {
+		$this->verify_request();
+
+		if ( ! class_exists( 'FWA_Contact_Manager' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Contact manager not available.', 'flexi-whatsapp-automation' ) ) );
+		}
+
+		$manager = new FWA_Contact_Manager();
+
+		if ( ! method_exists( $manager, 'sync_woocommerce' ) ) {
+			wp_send_json_error( array( 'message' => __( 'WooCommerce sync not supported.', 'flexi-whatsapp-automation' ) ) );
+		}
+
+		$count = $manager->sync_woocommerce();
+
+		wp_send_json_success( array(
+			'count'   => $count,
+			'message' => sprintf(
+				/* translators: %d: number of contacts synced */
+				__( 'Synced %d contacts from WooCommerce.', 'flexi-whatsapp-automation' ),
+				$count
+			),
+		) );
+	}
+
+	/**
+	 * Handle retrieving automation rules.
+	 *
+	 * @since 1.0.0
+	 */
+	public function handle_get_automation_rules() {
+		$this->verify_request();
+
+		if ( ! class_exists( 'FWA_Automation_Engine' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Automation engine not available.', 'flexi-whatsapp-automation' ) ) );
+		}
+
+		$engine = new FWA_Automation_Engine();
+
+		if ( method_exists( $engine, 'get_rules' ) ) {
+			$rules = $engine->get_rules();
+		} else {
+			$rules = get_option( 'fwa_automation_rules', array() );
+		}
+
+		wp_send_json_success( array( 'rules' => $rules ) );
+	}
+
+	/**
+	 * Handle checking an instance's connection status.
+	 *
+	 * @since 1.0.0
+	 */
+	public function handle_check_instance_status() {
+		$this->verify_request();
+
+		$id = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
+
+		if ( ! $id ) {
+			wp_send_json_error( array( 'message' => __( 'Instance ID is required.', 'flexi-whatsapp-automation' ) ) );
+		}
+
+		$manager  = new FWA_Instance_Manager();
+		$instance = $manager->get( $id );
+
+		if ( ! $instance ) {
+			wp_send_json_error( array( 'message' => __( 'Instance not found.', 'flexi-whatsapp-automation' ) ) );
+		}
+
+		$status = isset( $instance['status'] ) ? $instance['status'] : 'disconnected';
+
+		wp_send_json_success( array( 'status' => $status ) );
 	}
 }
