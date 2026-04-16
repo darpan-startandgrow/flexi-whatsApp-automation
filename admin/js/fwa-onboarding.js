@@ -208,8 +208,8 @@
 			var self = this;
 			var otp = $('#fwa-ob-otp-code').val().trim();
 
-			if (!otp || otp.length !== 6) {
-				this.showStatus('#fwa-ob-otp-verify-status', 'error', 'Please enter the 6-digit code.');
+			if (!otp || otp.length !== 6 || !/^\d{6}$/.test(otp)) {
+				this.showStatus('#fwa-ob-otp-verify-status', 'error', 'Please enter a valid 6-digit numeric code.');
 				return;
 			}
 
@@ -262,7 +262,15 @@
 			this.otpTimer = setInterval(function () {
 				self.otpCountdown--;
 
-				var minutes = Math.floor(self.otpCountdown / 60);
+				if (self.otpCountdown <= 0) {
+				clearInterval(self.otpTimer);
+				self.otpTimer = null;
+				$('#fwa-ob-otp-timer').text(fwa_admin.strings.code_expired || 'Code has expired. Please request a new one.');
+				$('#fwa-ob-resend-otp').prop('disabled', false);
+				return;
+			}
+
+			var minutes = Math.floor(self.otpCountdown / 60);
 				var seconds = self.otpCountdown % 60;
 				var display = minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
 
@@ -272,13 +280,6 @@
 
 				// Enable resend after 30 seconds.
 				if (self.otpCountdown <= 270) {
-					$('#fwa-ob-resend-otp').prop('disabled', false);
-				}
-
-				if (self.otpCountdown <= 0) {
-					clearInterval(self.otpTimer);
-					self.otpTimer = null;
-					$('#fwa-ob-otp-timer').text(fwa_admin.strings.code_expired || 'Code has expired. Please request a new one.');
 					$('#fwa-ob-resend-otp').prop('disabled', false);
 				}
 			}, 1000);

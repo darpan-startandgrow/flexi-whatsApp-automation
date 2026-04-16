@@ -262,13 +262,15 @@ class FWA_OTP_Manager {
 	/**
 	 * Build the transient key for a phone number.
 	 *
+	 * Uses a truncated SHA-256 hash to fit within the transient key length limit.
+	 *
 	 * @since 1.1.0
 	 *
 	 * @param string $phone Phone number.
 	 * @return string Transient key.
 	 */
 	private function get_transient_key( $phone ) {
-		return 'fwa_otp_' . md5( $phone );
+		return 'fwa_otp_' . substr( hash( 'sha256', $phone ), 0, 32 );
 	}
 
 	/**
@@ -280,7 +282,7 @@ class FWA_OTP_Manager {
 	 * @return true|WP_Error
 	 */
 	private function check_rate_limit( $phone ) {
-		$key     = 'fwa_otp_rate_' . md5( $phone );
+		$key     = 'fwa_otp_rate_' . substr( hash( 'sha256', $phone ), 0, 28 );
 		$current = (int) get_transient( $key );
 
 		if ( $current >= self::RATE_LIMIT ) {
@@ -302,7 +304,7 @@ class FWA_OTP_Manager {
 	 * @param string $phone Phone number.
 	 */
 	private function increment_rate_limit( $phone ) {
-		$key     = 'fwa_otp_rate_' . md5( $phone );
+		$key     = 'fwa_otp_rate_' . substr( hash( 'sha256', $phone ), 0, 28 );
 		$current = (int) get_transient( $key );
 
 		if ( 0 === $current ) {
@@ -338,12 +340,14 @@ class FWA_OTP_Manager {
 			);
 		}
 
-		$site_name = get_bloginfo( 'name' );
-		$message   = sprintf(
-			/* translators: 1: OTP code, 2: site name */
-			__( 'Your verification code for %2$s is: *%1$s*. This code expires in 5 minutes. Do not share it with anyone.', 'flexi-whatsapp-automation' ),
+		$site_name    = get_bloginfo( 'name' );
+		$expiry_mins  = (int) ceil( self::OTP_EXPIRY / 60 );
+		$message      = sprintf(
+			/* translators: 1: OTP code, 2: site name, 3: expiry minutes */
+			__( 'Your verification code for %2$s is: *%1$s*. This code expires in %3$d minutes. Do not share it with anyone.', 'flexi-whatsapp-automation' ),
 			$otp,
-			$site_name
+			$site_name,
+			$expiry_mins
 		);
 
 		$sender = new FWA_Message_Sender();
