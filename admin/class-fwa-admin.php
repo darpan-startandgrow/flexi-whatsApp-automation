@@ -242,6 +242,11 @@ class FWA_Admin {
 					'delete'         => __( 'Delete', 'flexi-whatsapp-automation' ),
 					'sync_woo'       => __( 'Sync WooCommerce', 'flexi-whatsapp-automation' ),
 					'active_instance'=> __( 'Active Instance', 'flexi-whatsapp-automation' ),
+					'send_otp'       => __( 'Send Verification Code', 'flexi-whatsapp-automation' ),
+					'sending_otp'    => __( 'Sending…', 'flexi-whatsapp-automation' ),
+					'otp_required'   => __( 'Please verify your phone number first, or skip this step.', 'flexi-whatsapp-automation' ),
+					'code_expires'   => __( 'Code expires in', 'flexi-whatsapp-automation' ),
+					'code_expired'   => __( 'Code has expired. Please request a new one.', 'flexi-whatsapp-automation' ),
 				),
 			)
 		);

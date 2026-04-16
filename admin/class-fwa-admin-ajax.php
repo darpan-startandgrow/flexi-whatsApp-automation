@@ -67,6 +67,9 @@ class FWA_Admin_AJAX {
 			'fwa_save_settings',
 			// Onboarding.
 			'fwa_complete_onboarding',
+			// OTP.
+			'fwa_send_otp',
+			'fwa_verify_otp',
 		);
 
 		foreach ( $actions as $action ) {
@@ -1051,5 +1054,62 @@ class FWA_Admin_AJAX {
 		$status = isset( $instance['status'] ) ? $instance['status'] : 'disconnected';
 
 		wp_send_json_success( array( 'status' => $status ) );
+	}
+
+	// =========================================================================
+	// OTP handlers
+	// =========================================================================
+
+	/**
+	 * Handle sending an OTP to a phone number via WhatsApp.
+	 *
+	 * @since 1.1.0
+	 */
+	public function handle_send_otp() {
+		$this->verify_request();
+
+		$phone = isset( $_POST['phone'] ) ? sanitize_text_field( wp_unslash( $_POST['phone'] ) ) : '';
+
+		if ( empty( $phone ) ) {
+			wp_send_json_error( array( 'message' => __( 'Phone number is required.', 'flexi-whatsapp-automation' ) ) );
+		}
+
+		$otp_manager = new FWA_OTP_Manager();
+		$result      = $otp_manager->send_otp( $phone );
+
+		if ( is_wp_error( $result ) ) {
+			wp_send_json_error( array( 'message' => $result->get_error_message() ) );
+		}
+
+		wp_send_json_success( array(
+			'message' => __( 'Verification code sent to your WhatsApp. Please check your messages.', 'flexi-whatsapp-automation' ),
+		) );
+	}
+
+	/**
+	 * Handle verifying an OTP for a phone number.
+	 *
+	 * @since 1.1.0
+	 */
+	public function handle_verify_otp() {
+		$this->verify_request();
+
+		$phone = isset( $_POST['phone'] ) ? sanitize_text_field( wp_unslash( $_POST['phone'] ) ) : '';
+		$otp   = isset( $_POST['otp'] ) ? sanitize_text_field( wp_unslash( $_POST['otp'] ) ) : '';
+
+		if ( empty( $phone ) || empty( $otp ) ) {
+			wp_send_json_error( array( 'message' => __( 'Phone number and OTP are required.', 'flexi-whatsapp-automation' ) ) );
+		}
+
+		$otp_manager = new FWA_OTP_Manager();
+		$result      = $otp_manager->verify_otp( $phone, $otp );
+
+		if ( is_wp_error( $result ) ) {
+			wp_send_json_error( array( 'message' => $result->get_error_message() ) );
+		}
+
+		wp_send_json_success( array(
+			'message' => __( 'Phone number verified successfully!', 'flexi-whatsapp-automation' ),
+		) );
 	}
 }

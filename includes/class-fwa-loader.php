@@ -65,6 +65,9 @@ class FWA_Loader {
 		// 12. Logger.
 		require_once FWA_PLUGIN_DIR . 'includes/logging/class-fwa-logger.php';
 
+		// 12b. OTP Manager.
+		require_once FWA_PLUGIN_DIR . 'includes/class-fwa-otp-manager.php';
+
 		// 13. Dashboard Widget.
 		require_once FWA_PLUGIN_DIR . 'includes/class-fwa-dashboard-widget.php';
 
