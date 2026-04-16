@@ -68,6 +68,15 @@ class FWA_Loader {
 		// 12b. OTP Manager.
 		require_once FWA_PLUGIN_DIR . 'includes/class-fwa-otp-manager.php';
 
+		// 12c. Template Engine.
+		require_once FWA_PLUGIN_DIR . 'includes/class-fwa-template-engine.php';
+
+		// 12d. OTP Login (public shortcodes).
+		require_once FWA_PLUGIN_DIR . 'includes/class-fwa-otp-login.php';
+
+		// 12e. Chat Widget.
+		require_once FWA_PLUGIN_DIR . 'includes/class-fwa-chat-widget.php';
+
 		// 13. Dashboard Widget.
 		require_once FWA_PLUGIN_DIR . 'includes/class-fwa-dashboard-widget.php';
 
@@ -137,6 +146,12 @@ class FWA_Loader {
 
 		// Dashboard widget.
 		new FWA_Dashboard_Widget();
+
+		// Chat widget (frontend).
+		new FWA_Chat_Widget();
+
+		// OTP Login (public shortcodes).
+		new FWA_OTP_Login();
 
 		// Admin.
 		if ( is_admin() ) {
