@@ -165,6 +165,9 @@ jQuery(document).ready(function($) {
                     var dirIcon = msg.direction === 'outgoing' ? '&#x2191;' : '&#x2193;';
                     var content = msg.content ? msg.content.substring(0, 60) : '';
                     var statusClass = 'fwa-badge-' + (msg.status || 'unknown');
+                    var resendBtn = (msg.direction === 'outgoing' && msg.status === 'failed')
+                        ? '<button type="button" class="button button-small fwa-resend-msg" data-id="' + esc(msg.id) + '" style="color:#a00;">' + <?php echo wp_json_encode( esc_html__( 'Resend', 'flexi-whatsapp-automation' ) ); ?> + '</button> '
+                        : '';
                     tbody.append(
                         '<tr>' +
                         '<td>' + esc(msg.created_at) + '</td>' +
@@ -173,7 +176,7 @@ jQuery(document).ready(function($) {
                         '<td>' + esc(msg.message_type) + '</td>' +
                         '<td>' + esc(content) + '</td>' +
                         '<td><span class="fwa-badge ' + statusClass + '">' + esc(msg.status) + '</span></td>' +
-                        '<td><button type="button" class="button button-small fwa-view-msg" data-id="' + esc(msg.id) + '">' + <?php echo wp_json_encode( esc_html__( 'View', 'flexi-whatsapp-automation' ) ); ?> + '</button></td>' +
+                        '<td>' + resendBtn + '<button type="button" class="button button-small fwa-view-msg" data-id="' + esc(msg.id) + '">' + <?php echo wp_json_encode( esc_html__( 'View', 'flexi-whatsapp-automation' ) ); ?> + '</button></td>' +
                         '</tr>'
                     );
                 });
@@ -228,5 +231,20 @@ jQuery(document).ready(function($) {
     });
 
     $('#fwa-msg-detail-close').on('click', function() { $('#fwa-msg-detail-modal').hide(); });
+
+    $(document).on('click', '.fwa-resend-msg', function() {
+        var id = $(this).data('id');
+        var $btn = $(this);
+        $btn.prop('disabled', true).text(<?php echo wp_json_encode( esc_html__( 'Sending…', 'flexi-whatsapp-automation' ) ); ?>);
+        $.post(fwa_admin.ajax_url, { action: 'fwa_resend_message', _ajax_nonce: fwa_admin.nonce, id: id }, function(r) {
+            if (r.success) {
+                $btn.closest('tr').find('.fwa-badge').text('sent').removeClass().addClass('fwa-badge fwa-badge-sent');
+                $btn.remove();
+            } else {
+                $btn.prop('disabled', false).text(<?php echo wp_json_encode( esc_html__( 'Resend', 'flexi-whatsapp-automation' ) ); ?>);
+                alert(r.data && r.data.message ? r.data.message : '<?php echo esc_js( __( 'Failed to resend.', 'flexi-whatsapp-automation' ) ); ?>');
+            }
+        });
+    });
 });
 </script>

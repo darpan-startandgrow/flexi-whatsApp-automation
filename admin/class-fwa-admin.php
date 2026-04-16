@@ -33,6 +33,7 @@ class FWA_Admin {
 		'fwa-automation' => 'admin/views/automation.php',
 		'fwa-schedules'  => 'admin/views/schedules.php',
 		'fwa-logs'       => 'admin/views/logs.php',
+		'fwa-widget'     => 'admin/views/widget.php',
 		'fwa-settings'   => 'admin/views/settings.php',
 		'fwa-onboarding' => 'admin/views/onboarding.php',
 	);
@@ -98,6 +99,7 @@ class FWA_Admin {
 			'fwa-automation' => __( 'Automation', 'flexi-whatsapp-automation' ),
 			'fwa-schedules'  => __( 'Schedules', 'flexi-whatsapp-automation' ),
 			'fwa-logs'       => __( 'Logs', 'flexi-whatsapp-automation' ),
+			'fwa-widget'     => __( 'Chat Widget', 'flexi-whatsapp-automation' ),
 			'fwa-settings'   => __( 'Settings', 'flexi-whatsapp-automation' ),
 		);
 

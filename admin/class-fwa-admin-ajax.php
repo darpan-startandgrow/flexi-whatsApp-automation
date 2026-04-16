@@ -70,6 +70,18 @@ class FWA_Admin_AJAX {
 			// OTP.
 			'fwa_send_otp',
 			'fwa_verify_otp',
+			// Instances – pairing code.
+			'fwa_get_pairing_code',
+			// Campaigns – resume + analytics.
+			'fwa_resume_campaign',
+			'fwa_get_campaign_stats',
+			// Messages – resend.
+			'fwa_resend_message',
+			// Contacts – subscription toggle + WA check.
+			'fwa_toggle_contact_subscription',
+			'fwa_check_wa_number',
+			// Widget settings.
+			'fwa_save_widget_settings',
 		);
 
 		foreach ( $actions as $action ) {
@@ -1111,5 +1123,331 @@ class FWA_Admin_AJAX {
 		wp_send_json_success( array(
 			'message' => __( 'Phone number verified successfully!', 'flexi-whatsapp-automation' ),
 		) );
+	}
+
+	// =========================================================================
+	// Pairing code handler
+	// =========================================================================
+
+	/**
+	 * Get a pairing code for a WhatsApp instance.
+	 *
+	 * @since 1.2.0
+	 */
+	public function handle_get_pairing_code() {
+		$this->verify_request();
+
+		$id    = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
+		$phone = isset( $_POST['phone'] ) ? sanitize_text_field( wp_unslash( $_POST['phone'] ) ) : '';
+
+		if ( ! $id ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid instance ID.', 'flexi-whatsapp-automation' ) ) );
+		}
+
+		if ( empty( $phone ) ) {
+			wp_send_json_error( array( 'message' => __( 'Phone number is required for pairing code.', 'flexi-whatsapp-automation' ) ) );
+		}
+
+		$manager  = new FWA_Instance_Manager();
+		$instance = $manager->get( $id );
+
+		if ( ! $instance ) {
+			wp_send_json_error( array( 'message' => __( 'Instance not found.', 'flexi-whatsapp-automation' ) ) );
+		}
+
+		$api    = new FWA_API_Client( $instance->instance_id, $instance->access_token );
+		$result = $api->getPairingCode( $instance->instance_id, $phone );
+
+		if ( is_wp_error( $result ) ) {
+			wp_send_json_error( array( 'message' => $result->get_error_message() ) );
+		}
+
+		$code = '';
+		if ( is_array( $result ) && isset( $result['code'] ) ) {
+			$code = $result['code'];
+		} elseif ( is_string( $result ) ) {
+			$code = $result;
+		}
+
+		wp_send_json_success( array( 'code' => sanitize_text_field( $code ) ) );
+	}
+
+	// =========================================================================
+	// Campaign resume + analytics handlers
+	// =========================================================================
+
+	/**
+	 * Handle resuming a paused campaign.
+	 *
+	 * @since 1.2.0
+	 */
+	public function handle_resume_campaign() {
+		$this->verify_request();
+
+		$id = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
+
+		if ( ! $id ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid campaign ID.', 'flexi-whatsapp-automation' ) ) );
+		}
+
+		$manager = new FWA_Campaign_Manager();
+		$result  = $manager->resume( $id );
+
+		if ( is_wp_error( $result ) ) {
+			wp_send_json_error( array( 'message' => $result->get_error_message() ) );
+		}
+
+		wp_send_json_success( array( 'message' => __( 'Campaign resumed.', 'flexi-whatsapp-automation' ) ) );
+	}
+
+	/**
+	 * Handle getting campaign analytics (delivery stats).
+	 *
+	 * @since 1.2.0
+	 */
+	public function handle_get_campaign_stats() {
+		$this->verify_request();
+
+		$id = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
+
+		if ( ! $id ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid campaign ID.', 'flexi-whatsapp-automation' ) ) );
+		}
+
+		$manager  = new FWA_Campaign_Manager();
+		$campaign = $manager->get( $id );
+
+		if ( ! $campaign ) {
+			wp_send_json_error( array( 'message' => __( 'Campaign not found.', 'flexi-whatsapp-automation' ) ) );
+		}
+
+		// Compute per-status counts from campaign_logs.
+		global $wpdb;
+		$logs_table = FWA_Helpers::get_campaign_logs_table();
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$rows = $wpdb->get_results( $wpdb->prepare(
+			"SELECT status, COUNT(*) AS cnt FROM {$logs_table} WHERE campaign_id = %d GROUP BY status",
+			$id
+		) );
+
+		$by_status = array(
+			'pending'   => 0,
+			'sent'      => 0,
+			'delivered' => 0,
+			'read'      => 0,
+			'failed'    => 0,
+		);
+
+		foreach ( $rows as $row ) {
+			if ( isset( $by_status[ $row->status ] ) ) {
+				$by_status[ $row->status ] = (int) $row->cnt;
+			}
+		}
+
+		wp_send_json_success( array(
+			'campaign'  => $campaign,
+			'by_status' => $by_status,
+		) );
+	}
+
+	// =========================================================================
+	// Resend message handler
+	// =========================================================================
+
+	/**
+	 * Re-send a failed outgoing message.
+	 *
+	 * @since 1.2.0
+	 */
+	public function handle_resend_message() {
+		$this->verify_request();
+
+		$id = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
+
+		if ( ! $id ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid message ID.', 'flexi-whatsapp-automation' ) ) );
+		}
+
+		global $wpdb;
+		$table = FWA_Helpers::get_messages_table();
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$msg = $wpdb->get_row( $wpdb->prepare(
+			"SELECT * FROM {$table} WHERE id = %d LIMIT 1",
+			$id
+		) );
+
+		if ( ! $msg ) {
+			wp_send_json_error( array( 'message' => __( 'Message not found.', 'flexi-whatsapp-automation' ) ) );
+		}
+
+		if ( 'outgoing' !== $msg->direction ) {
+			wp_send_json_error( array( 'message' => __( 'Only outgoing messages can be resent.', 'flexi-whatsapp-automation' ) ) );
+		}
+
+		$sender = new FWA_Message_Sender();
+
+		if ( 'text' === $msg->message_type ) {
+			$result = $sender->send_text( $msg->recipient, $msg->content, $msg->instance_id );
+		} else {
+			$result = $sender->send_media(
+				$msg->recipient,
+				$msg->message_type,
+				$msg->media_url,
+				$msg->media_caption,
+				$msg->instance_id
+			);
+		}
+
+		if ( is_wp_error( $result ) ) {
+			wp_send_json_error( array( 'message' => $result->get_error_message() ) );
+		}
+
+		wp_send_json_success( array(
+			'message'    => __( 'Message resent successfully.', 'flexi-whatsapp-automation' ),
+			'message_id' => $result,
+		) );
+	}
+
+	// =========================================================================
+	// Contact subscription toggle + WhatsApp number check
+	// =========================================================================
+
+	/**
+	 * Toggle a contact's subscription status (opt-in / opt-out).
+	 *
+	 * @since 1.2.0
+	 */
+	public function handle_toggle_contact_subscription() {
+		$this->verify_request();
+
+		$id = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
+
+		if ( ! $id ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid contact ID.', 'flexi-whatsapp-automation' ) ) );
+		}
+
+		global $wpdb;
+		$table = FWA_Helpers::get_contacts_table();
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$contact = $wpdb->get_row( $wpdb->prepare( "SELECT id, is_subscribed FROM {$table} WHERE id = %d LIMIT 1", $id ) );
+
+		if ( ! $contact ) {
+			wp_send_json_error( array( 'message' => __( 'Contact not found.', 'flexi-whatsapp-automation' ) ) );
+		}
+
+		$new_status = $contact->is_subscribed ? 0 : 1;
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		$wpdb->update( $table, array( 'is_subscribed' => $new_status ), array( 'id' => $id ), array( '%d' ), array( '%d' ) );
+
+		wp_send_json_success( array(
+			'is_subscribed' => $new_status,
+			'message'       => $new_status
+				? __( 'Contact opted in.', 'flexi-whatsapp-automation' )
+				: __( 'Contact opted out.', 'flexi-whatsapp-automation' ),
+		) );
+	}
+
+	/**
+	 * Check whether a phone number is registered on WhatsApp.
+	 *
+	 * @since 1.2.0
+	 */
+	public function handle_check_wa_number() {
+		$this->verify_request();
+
+		$phone = isset( $_POST['phone'] ) ? sanitize_text_field( wp_unslash( $_POST['phone'] ) ) : '';
+
+		if ( empty( $phone ) ) {
+			wp_send_json_error( array( 'message' => __( 'Phone number is required.', 'flexi-whatsapp-automation' ) ) );
+		}
+
+		$instance = FWA_Helpers::get_active_instance();
+
+		if ( ! $instance ) {
+			wp_send_json_error( array( 'message' => __( 'No active WhatsApp instance connected.', 'flexi-whatsapp-automation' ) ) );
+		}
+
+		$api    = new FWA_API_Client( $instance->instance_id, $instance->access_token );
+		$result = $api->request( 'number/check', 'POST', array( 'phone' => $phone ) );
+
+		if ( is_wp_error( $result ) ) {
+			wp_send_json_error( array( 'message' => $result->get_error_message() ) );
+		}
+
+		$exists = isset( $result['exists'] ) ? (bool) $result['exists'] : false;
+
+		wp_send_json_success( array(
+			'phone'  => $phone,
+			'exists' => $exists,
+		) );
+	}
+
+	// =========================================================================
+	// Widget settings handler
+	// =========================================================================
+
+	/**
+	 * Save chat widget settings.
+	 *
+	 * @since 1.2.0
+	 */
+	public function handle_save_widget_settings() {
+		$this->verify_request();
+
+		if ( ! isset( $_POST['widget'] ) ) {
+			wp_send_json_error( array( 'message' => __( 'No widget data provided.', 'flexi-whatsapp-automation' ) ) );
+		}
+
+		$raw = wp_unslash( $_POST['widget'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+
+		if ( is_string( $raw ) ) {
+			$data = json_decode( $raw, true );
+		} else {
+			$data = (array) $raw;
+		}
+
+		if ( ! is_array( $data ) ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid widget data.', 'flexi-whatsapp-automation' ) ) );
+		}
+
+		// Sanitize known scalar fields.
+		$sanitized = array();
+
+		$text_fields = array(
+			'enabled', 'position', 'button_text', 'button_color', 'text_color',
+			'header_title', 'header_subtitle', 'welcome_message', 'display_delay',
+			'show_on_mobile', 'show_on_desktop', 'display_pages', 'exclude_pages',
+			'analytics', 'social_facebook', 'social_instagram', 'social_twitter',
+			'social_linkedin', 'social_youtube', 'cta_message', 'show_desktop_qr',
+		);
+
+		foreach ( $text_fields as $field ) {
+			if ( isset( $data[ $field ] ) ) {
+				$sanitized[ $field ] = sanitize_text_field( $data[ $field ] );
+			}
+		}
+
+		// Agents (array of arrays).
+		if ( isset( $data['agents'] ) && is_array( $data['agents'] ) ) {
+			$sanitized['agents'] = array();
+			foreach ( $data['agents'] as $agent ) {
+				if ( ! is_array( $agent ) ) {
+					continue;
+				}
+				$sanitized['agents'][] = array(
+					'name'            => isset( $agent['name'] ) ? sanitize_text_field( $agent['name'] ) : '',
+					'phone'           => isset( $agent['phone'] ) ? sanitize_text_field( $agent['phone'] ) : '',
+					'role'            => isset( $agent['role'] ) ? sanitize_text_field( $agent['role'] ) : '',
+					'default_message' => isset( $agent['default_message'] ) ? sanitize_textarea_field( $agent['default_message'] ) : '',
+					'avatar_url'      => isset( $agent['avatar_url'] ) ? esc_url_raw( $agent['avatar_url'] ) : '',
+					'availability'    => isset( $agent['availability'] ) ? sanitize_text_field( $agent['availability'] ) : '',
+				);
+			}
+		}
+
+		update_option( 'fwa_chat_widget', $sanitized );
+
+		wp_send_json_success( array( 'message' => __( 'Widget settings saved.', 'flexi-whatsapp-automation' ) ) );
 	}
 }

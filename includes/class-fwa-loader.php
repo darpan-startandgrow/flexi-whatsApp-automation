@@ -77,6 +77,9 @@ class FWA_Loader {
 		// 12e. Chat Widget.
 		require_once FWA_PLUGIN_DIR . 'includes/class-fwa-chat-widget.php';
 
+		// 12f. Advanced Phone Field.
+		require_once FWA_PLUGIN_DIR . 'includes/class-fwa-phone-field.php';
+
 		// 13. Dashboard Widget.
 		require_once FWA_PLUGIN_DIR . 'includes/class-fwa-dashboard-widget.php';
 
@@ -149,6 +152,9 @@ class FWA_Loader {
 
 		// Chat widget (frontend).
 		new FWA_Chat_Widget();
+
+		// Advanced Phone Field.
+		new FWA_Phone_Field();
 
 		// OTP Login (public shortcodes).
 		new FWA_OTP_Login();

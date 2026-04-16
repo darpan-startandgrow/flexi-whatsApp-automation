@@ -261,4 +261,37 @@ class FWA_Helpers {
 
 		return substr( $token, 0, 6 ) . str_repeat( '*', $len - 10 ) . substr( $token, -4 );
 	}
+
+	/**
+	 * Get the client IP address from server superglobals.
+	 *
+	 * Checks common proxy headers before falling back to REMOTE_ADDR.
+	 *
+	 * @since 1.2.0
+	 *
+	 * @return string IP address string.
+	 */
+	public static function get_client_ip() {
+		$keys = array(
+			'HTTP_CF_CONNECTING_IP',
+			'HTTP_X_FORWARDED_FOR',
+			'HTTP_X_REAL_IP',
+			'HTTP_CLIENT_IP',
+			'REMOTE_ADDR',
+		);
+
+		foreach ( $keys as $key ) {
+			if ( ! empty( $_SERVER[ $key ] ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+				$ip = sanitize_text_field( wp_unslash( $_SERVER[ $key ] ) );
+				// X-Forwarded-For may be a comma-separated list; take the first.
+				$parts = explode( ',', $ip );
+				$ip    = trim( $parts[0] );
+				if ( filter_var( $ip, FILTER_VALIDATE_IP ) ) {
+					return $ip;
+				}
+			}
+		}
+
+		return '';
+	}
 }

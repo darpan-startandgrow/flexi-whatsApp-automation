@@ -1,0 +1,273 @@
+/**
+ * Flexi WhatsApp Automation – Advanced Phone Field Styles
+ *
+ * @package Flexi_WhatsApp_Automation
+ * @since   1.2.0
+ */
+
+/* -----------------------------------------------------------------------
+ * Wrapper + layout
+ * --------------------------------------------------------------------- */
+
+.fwa-phone-wrapper {
+	position: relative;
+	display: flex;
+	align-items: stretch;
+	width: 100%;
+}
+
+.fwa-phone-wrapper input[type="tel"],
+.fwa-phone-wrapper input.fwa-otp-input {
+	flex: 1;
+	border-top-left-radius: 0;
+	border-bottom-left-radius: 0;
+	min-width: 0;
+}
+
+/* -----------------------------------------------------------------------
+ * Flag button
+ * --------------------------------------------------------------------- */
+
+.fwa-phone-flag-btn {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	padding: 0 8px;
+	border: 1px solid #ccc;
+	border-right: none;
+	border-radius: 4px 0 0 4px;
+	background: #f9f9f9;
+	cursor: pointer;
+	font-size: 13px;
+	white-space: nowrap;
+	color: #333;
+	line-height: 1;
+}
+
+.fwa-phone-flag-btn:focus {
+	outline: 2px solid #25D366;
+	outline-offset: 1px;
+}
+
+.fwa-phone-selected-dial {
+	font-size: 13px;
+	font-weight: 600;
+	color: #333;
+}
+
+.fwa-phone-caret {
+	font-size: 9px;
+	color: #888;
+}
+
+/* -----------------------------------------------------------------------
+ * Flag sprites (emoji fallback)
+ * --------------------------------------------------------------------- */
+
+.fwa-phone-flag {
+	display: inline-block;
+	width: 20px;
+	height: 14px;
+	background-size: cover;
+	background-position: center;
+	border-radius: 2px;
+	overflow: hidden;
+	vertical-align: middle;
+	/* Emoji flag as a fallback — no image dependencies */
+	font-size: 16px;
+	line-height: 1;
+	width: auto;
+	height: auto;
+}
+
+/* Country-specific emoji flags via :before (no external images needed) */
+/* Only a representative subset is defined; the rest fall back gracefully */
+.fwa-flag-us:before  { content: "🇺🇸"; }
+.fwa-flag-gb:before  { content: "🇬🇧"; }
+.fwa-flag-in:before  { content: "🇮🇳"; }
+.fwa-flag-au:before  { content: "🇦🇺"; }
+.fwa-flag-ca:before  { content: "🇨🇦"; }
+.fwa-flag-de:before  { content: "🇩🇪"; }
+.fwa-flag-fr:before  { content: "🇫🇷"; }
+.fwa-flag-br:before  { content: "🇧🇷"; }
+.fwa-flag-mx:before  { content: "🇲🇽"; }
+.fwa-flag-cn:before  { content: "🇨🇳"; }
+.fwa-flag-jp:before  { content: "🇯🇵"; }
+.fwa-flag-ru:before  { content: "🇷🇺"; }
+.fwa-flag-za:before  { content: "🇿🇦"; }
+.fwa-flag-ng:before  { content: "🇳🇬"; }
+.fwa-flag-pk:before  { content: "🇵🇰"; }
+.fwa-flag-bd:before  { content: "🇧🇩"; }
+.fwa-flag-id:before  { content: "🇮🇩"; }
+.fwa-flag-eg:before  { content: "🇪🇬"; }
+.fwa-flag-tr:before  { content: "🇹🇷"; }
+.fwa-flag-sa:before  { content: "🇸🇦"; }
+.fwa-flag-ae:before  { content: "🇦🇪"; }
+.fwa-flag-ar:before  { content: "🇦🇷"; }
+.fwa-flag-co:before  { content: "🇨🇴"; }
+.fwa-flag-cl:before  { content: "🇨🇱"; }
+.fwa-flag-ke:before  { content: "🇰🇪"; }
+.fwa-flag-gh:before  { content: "🇬🇭"; }
+.fwa-flag-et:before  { content: "🇪🇹"; }
+.fwa-flag-tz:before  { content: "🇹🇿"; }
+.fwa-flag-ug:before  { content: "🇺🇬"; }
+.fwa-flag-dz:before  { content: "🇩🇿"; }
+.fwa-flag-ma:before  { content: "🇲🇦"; }
+.fwa-flag-th:before  { content: "🇹🇭"; }
+.fwa-flag-vn:before  { content: "🇻🇳"; }
+.fwa-flag-ph:before  { content: "🇵🇭"; }
+.fwa-flag-my:before  { content: "🇲🇾"; }
+.fwa-flag-sg:before  { content: "🇸🇬"; }
+.fwa-flag-nz:before  { content: "🇳🇿"; }
+.fwa-flag-il:before  { content: "🇮🇱"; }
+.fwa-flag-pl:before  { content: "🇵🇱"; }
+.fwa-flag-nl:before  { content: "🇳🇱"; }
+.fwa-flag-be:before  { content: "🇧🇪"; }
+.fwa-flag-se:before  { content: "🇸🇪"; }
+.fwa-flag-no:before  { content: "🇳🇴"; }
+.fwa-flag-dk:before  { content: "🇩🇰"; }
+.fwa-flag-fi:before  { content: "🇫🇮"; }
+.fwa-flag-at:before  { content: "🇦🇹"; }
+.fwa-flag-ch:before  { content: "🇨🇭"; }
+.fwa-flag-es:before  { content: "🇪🇸"; }
+.fwa-flag-it:before  { content: "🇮🇹"; }
+.fwa-flag-pt:before  { content: "🇵🇹"; }
+.fwa-flag-gr:before  { content: "🇬🇷"; }
+.fwa-flag-ro:before  { content: "🇷🇴"; }
+.fwa-flag-ua:before  { content: "🇺🇦"; }
+.fwa-flag-hu:before  { content: "🇭🇺"; }
+.fwa-flag-cz:before  { content: "🇨🇿"; }
+.fwa-flag-bg:before  { content: "🇧🇬"; }
+.fwa-flag-hr:before  { content: "🇭🇷"; }
+.fwa-flag-sk:before  { content: "🇸🇰"; }
+.fwa-flag-lt:before  { content: "🇱🇹"; }
+.fwa-flag-lv:before  { content: "🇱🇻"; }
+.fwa-flag-ee:before  { content: "🇪🇪"; }
+.fwa-flag-kr:before  { content: "🇰🇷"; }
+.fwa-flag-ir:before  { content: "🇮🇷"; }
+.fwa-flag-iq:before  { content: "🇮🇶"; }
+.fwa-flag-kw:before  { content: "🇰🇼"; }
+.fwa-flag-qa:before  { content: "🇶🇦"; }
+.fwa-flag-bh:before  { content: "🇧🇭"; }
+.fwa-flag-om:before  { content: "🇴🇲"; }
+.fwa-flag-jo:before  { content: "🇯🇴"; }
+.fwa-flag-lb:before  { content: "🇱🇧"; }
+.fwa-flag-sy:before  { content: "🇸🇾"; }
+.fwa-flag-ye:before  { content: "🇾🇪"; }
+.fwa-flag-af:before  { content: "🇦🇫"; }
+.fwa-flag-np:before  { content: "🇳🇵"; }
+.fwa-flag-lk:before  { content: "🇱🇰"; }
+.fwa-flag-mm:before  { content: "🇲🇲"; }
+.fwa-flag-kh:before  { content: "🇰🇭"; }
+.fwa-flag-la:before  { content: "🇱🇦"; }
+.fwa-flag-tw:before  { content: "🇹🇼"; }
+.fwa-flag-hk:before  { content: "🇭🇰"; }
+.fwa-flag-mo:before  { content: "🇲🇴"; }
+.fwa-flag-mn:before  { content: "🇲🇳"; }
+.fwa-flag-kz:before  { content: "🇰🇿"; }
+.fwa-flag-uz:before  { content: "🇺🇿"; }
+.fwa-flag-az:before  { content: "🇦🇿"; }
+.fwa-flag-ge:before  { content: "🇬🇪"; }
+.fwa-flag-am:before  { content: "🇦🇲"; }
+.fwa-flag-pe:before  { content: "🇵🇪"; }
+.fwa-flag-ve:before  { content: "🇻🇪"; }
+.fwa-flag-ec:before  { content: "🇪🇨"; }
+.fwa-flag-bo:before  { content: "🇧🇴"; }
+.fwa-flag-py:before  { content: "🇵🇾"; }
+.fwa-flag-uy:before  { content: "🇺🇾"; }
+.fwa-flag-cr:before  { content: "🇨🇷"; }
+.fwa-flag-pa:before  { content: "🇵🇦"; }
+.fwa-flag-gt:before  { content: "🇬🇹"; }
+.fwa-flag-hn:before  { content: "🇭🇳"; }
+.fwa-flag-sv:before  { content: "🇸🇻"; }
+.fwa-flag-ni:before  { content: "🇳🇮"; }
+.fwa-flag-do:before  { content: "🇩🇴"; }
+.fwa-flag-cu:before  { content: "🇨🇺"; }
+.fwa-flag-jm:before  { content: "🇯🇲"; }
+.fwa-flag-ht:before  { content: "🇭🇹"; }
+.fwa-flag-tt:before  { content: "🇹🇹"; }
+.fwa-flag-bb:before  { content: "🇧🇧"; }
+.fwa-flag-bs:before  { content: "🇧🇸"; }
+
+/* -----------------------------------------------------------------------
+ * Dropdown panel
+ * --------------------------------------------------------------------- */
+
+.fwa-phone-dropdown {
+	position: absolute;
+	top: 100%;
+	left: 0;
+	z-index: 9999;
+	width: 280px;
+	max-height: 300px;
+	background: #fff;
+	border: 1px solid #ccc;
+	border-radius: 4px;
+	box-shadow: 0 4px 12px rgba(0,0,0,.15);
+	display: flex;
+	flex-direction: column;
+}
+
+.fwa-phone-dropdown-search {
+	padding: 8px 10px;
+	border: none;
+	border-bottom: 1px solid #eee;
+	font-size: 13px;
+	outline: none;
+	width: 100%;
+	box-sizing: border-box;
+}
+
+.fwa-phone-dropdown-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	overflow-y: auto;
+	flex: 1;
+}
+
+.fwa-phone-dropdown-item {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 8px 12px;
+	cursor: pointer;
+	font-size: 13px;
+	color: #333;
+	transition: background .1s;
+}
+
+.fwa-phone-dropdown-item:hover,
+.fwa-phone-dropdown-item:focus {
+	background: #f0fdf4;
+}
+
+.fwa-phone-country-name {
+	flex: 1;
+}
+
+.fwa-phone-dial-code {
+	color: #888;
+	font-size: 12px;
+}
+
+/* -----------------------------------------------------------------------
+ * Validation states
+ * --------------------------------------------------------------------- */
+
+.fwa-phone-wrapper input.fwa-phone-valid {
+	border-color: #25D366;
+	box-shadow: 0 0 0 1px #25D366;
+}
+
+.fwa-phone-wrapper input.fwa-phone-invalid {
+	border-color: #dc3232;
+	box-shadow: 0 0 0 1px #dc3232;
+}
+
+.fwa-phone-error {
+	display: block;
+	color: #dc3232;
+	font-size: 12px;
+	margin-top: 4px;
+}
