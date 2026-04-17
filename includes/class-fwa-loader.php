@@ -38,6 +38,11 @@ class FWA_Loader {
 		// 3. Uninstaller (needed by deactivator for full-cleanup path).
 		require_once FWA_PLUGIN_DIR . 'includes/class-fwa-uninstaller.php';
 
+		// 3b. Licensing — loaded early so guard is available to all modules.
+		require_once FWA_PLUGIN_DIR . 'includes/licensing/class-fwa-license-client.php';
+		require_once FWA_PLUGIN_DIR . 'includes/licensing/class-fwa-license-manager.php';
+		require_once FWA_PLUGIN_DIR . 'includes/licensing/class-fwa-license-guard.php';
+
 		// 4. API Client.
 		require_once FWA_PLUGIN_DIR . 'includes/api/class-fwa-api-client.php';
 
@@ -135,6 +140,13 @@ class FWA_Loader {
 
 		// Ensure custom cron intervals are always available.
 		add_filter( 'cron_schedules', array( __CLASS__, 'add_cron_schedules' ) );
+
+		// Initialize the license manager (singleton) and schedule revalidation.
+		$license_mgr = FWA_License_Manager::get_instance();
+		$license_mgr->schedule_revalidation();
+
+		// Show admin notice when license is missing/invalid.
+		add_action( 'admin_notices', array( 'FWA_License_Guard', 'maybe_show_admin_notice' ) );
 
 		// Core modules.
 		new FWA_API_Client();

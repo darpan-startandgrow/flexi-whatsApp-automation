@@ -35,6 +35,7 @@ class FWA_Admin {
 		'fwa-logs'       => 'admin/views/logs.php',
 		'fwa-widget'     => 'admin/views/widget.php',
 		'fwa-settings'   => 'admin/views/settings.php',
+		'fwa-license'    => 'admin/views/license.php',
 		'fwa-onboarding' => 'admin/views/onboarding.php',
 	);
 
@@ -101,6 +102,7 @@ class FWA_Admin {
 			'fwa-logs'       => __( 'Logs', 'flexi-whatsapp-automation' ),
 			'fwa-widget'     => __( 'Chat Widget', 'flexi-whatsapp-automation' ),
 			'fwa-settings'   => __( 'Settings', 'flexi-whatsapp-automation' ),
+			'fwa-license'    => __( 'License', 'flexi-whatsapp-automation' ),
 		);
 
 		foreach ( $submenus as $slug => $label ) {
@@ -221,11 +223,14 @@ class FWA_Admin {
 			'fwa-admin',
 			'fwa_admin',
 			array(
-				'ajax_url'      => admin_url( 'admin-ajax.php' ),
-				'nonce'         => wp_create_nonce( 'fwa_admin_nonce' ),
-				'api_base'      => rest_url( 'fwa/v1/' ),
-				'dashboard_url' => admin_url( 'admin.php?page=fwa-dashboard' ),
-				'strings'       => array(
+				'ajax_url'       => admin_url( 'admin-ajax.php' ),
+				'nonce'          => wp_create_nonce( 'fwa_admin_nonce' ),
+				'api_base'       => rest_url( 'fwa/v1/' ),
+				'dashboard_url'  => admin_url( 'admin.php?page=fwa-dashboard' ),
+				'license_url'    => admin_url( 'admin.php?page=fwa-license' ),
+				'is_licensed'    => FWA_License_Guard::is_licensed(),
+				'license_status' => class_exists( 'FWA_License_Manager' ) ? FWA_License_Manager::get_instance()->get_status() : 'inactive',
+				'strings'        => array(
 					'confirm_delete' => __( 'Are you sure you want to delete this item? This action cannot be undone.', 'flexi-whatsapp-automation' ),
 					'sending'        => __( 'Sending…', 'flexi-whatsapp-automation' ),
 					'sent'           => __( 'Message sent successfully.', 'flexi-whatsapp-automation' ),
@@ -313,6 +318,7 @@ class FWA_Admin {
 			'fwa-schedules'  => __( 'Schedules', 'flexi-whatsapp-automation' ),
 			'fwa-logs'       => __( 'Logs', 'flexi-whatsapp-automation' ),
 			'fwa-settings'   => __( 'Settings', 'flexi-whatsapp-automation' ),
+			'fwa-license'    => __( 'License', 'flexi-whatsapp-automation' ),
 			'fwa-onboarding' => __( 'Setup Wizard', 'flexi-whatsapp-automation' ),
 		);
 

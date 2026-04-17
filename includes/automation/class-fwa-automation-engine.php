@@ -810,6 +810,11 @@ class FWA_Automation_Engine {
 	 * @return void
 	 */
 	private function execute_rule( $rule, $data ) {
+		// License guard — block automation execution without a valid license.
+		if ( class_exists( 'FWA_License_Guard' ) && ! FWA_License_Guard::is_licensed() ) {
+			return;
+		}
+
 		if ( empty( $rule['enabled'] ) ) {
 			return;
 		}
@@ -852,6 +857,11 @@ class FWA_Automation_Engine {
 	 * @return void
 	 */
 	private function dispatch_rule( $rule, $data ) {
+		// Distributed license guard — secondary check at dispatch time.
+		if ( class_exists( 'FWA_License_Guard' ) && ! FWA_License_Guard::is_licensed() ) {
+			return;
+		}
+
 		// Resolve phone.
 		$phone_field = isset( $rule['phone_field'] ) ? $rule['phone_field'] : 'billing_phone';
 		$phone       = $this->resolve_phone( $data, $phone_field );

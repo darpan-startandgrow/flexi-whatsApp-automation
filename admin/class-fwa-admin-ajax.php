@@ -84,6 +84,10 @@ class FWA_Admin_AJAX {
 			'fwa_check_wa_number',
 			// Widget settings.
 			'fwa_save_widget_settings',
+			// License.
+			'fwa_activate_license',
+			'fwa_deactivate_license',
+			'fwa_get_license_status',
 		);
 
 		foreach ( $actions as $action ) {
@@ -1704,5 +1708,80 @@ class FWA_Admin_AJAX {
 		update_option( 'fwa_chat_widget', $sanitized );
 
 		wp_send_json_success( array( 'message' => __( 'Widget settings saved.', 'flexi-whatsapp-automation' ) ) );
+	}
+
+	// =========================================================================
+	// License handlers
+	// =========================================================================
+
+	/**
+	 * Handle license activation.
+	 *
+	 * @since 1.2.0
+	 */
+	public function handle_activate_license() {
+		$this->verify_request();
+
+		$license_key = isset( $_POST['license_key'] ) ? sanitize_text_field( wp_unslash( $_POST['license_key'] ) ) : '';
+
+		if ( empty( $license_key ) ) {
+			wp_send_json_error( array( 'message' => __( 'Please enter a license key.', 'flexi-whatsapp-automation' ) ) );
+		}
+
+		$manager = FWA_License_Manager::get_instance();
+		$result  = $manager->activate( $license_key );
+
+		// Reset the guard cache so subsequent checks reflect the new state.
+		FWA_License_Guard::reset_cache();
+
+		if ( is_wp_error( $result ) ) {
+			wp_send_json_error( array( 'message' => $result->get_error_message() ) );
+		}
+
+		wp_send_json_success( array(
+			'message' => __( 'License activated successfully.', 'flexi-whatsapp-automation' ),
+			'status'  => $manager->get_status(),
+		) );
+	}
+
+	/**
+	 * Handle license deactivation.
+	 *
+	 * @since 1.2.0
+	 */
+	public function handle_deactivate_license() {
+		$this->verify_request();
+
+		$manager = FWA_License_Manager::get_instance();
+		$result  = $manager->deactivate();
+
+		// Reset the guard cache.
+		FWA_License_Guard::reset_cache();
+
+		if ( is_wp_error( $result ) ) {
+			wp_send_json_error( array( 'message' => $result->get_error_message() ) );
+		}
+
+		wp_send_json_success( array(
+			'message' => __( 'License deactivated.', 'flexi-whatsapp-automation' ),
+			'status'  => 'inactive',
+		) );
+	}
+
+	/**
+	 * Handle license status check.
+	 *
+	 * @since 1.2.0
+	 */
+	public function handle_get_license_status() {
+		$this->verify_request();
+
+		$manager = FWA_License_Manager::get_instance();
+
+		wp_send_json_success( array(
+			'status'     => $manager->get_status(),
+			'is_valid'   => $manager->is_valid(),
+			'masked_key' => $manager->get_masked_key(),
+		) );
 	}
 }
