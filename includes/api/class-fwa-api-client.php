@@ -98,6 +98,15 @@ class FWA_API_Client {
 	 */
 	public function request( $endpoint, $method = 'POST', $body = array(), $headers = array() ) {
 
+		// --- License guard ----------------------------------------------------
+		if ( class_exists( 'FWA_License_Guard' ) ) {
+			$license_check = FWA_License_Guard::can_make_api_request();
+			if ( is_wp_error( $license_check ) ) {
+				do_action( 'fwa_api_error', $endpoint, $license_check );
+				return $license_check;
+			}
+		}
+
 		/**
 		 * Fires before an API request is dispatched.
 		 *

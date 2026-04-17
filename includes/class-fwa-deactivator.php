@@ -47,6 +47,7 @@ class FWA_Deactivator {
 			'fwa_process_queue',
 			'fwa_health_check',
 			'fwa_cleanup_logs',
+			'fwa_license_revalidate',
 		);
 
 		foreach ( $cron_hooks as $hook ) {

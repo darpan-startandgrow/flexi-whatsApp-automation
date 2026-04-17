@@ -38,59 +38,64 @@ class FWA_Loader {
 		// 3. Uninstaller (needed by deactivator for full-cleanup path).
 		require_once FWA_PLUGIN_DIR . 'includes/class-fwa-uninstaller.php';
 
-		// 4. API Client.
+		// 4. Licensing — loaded early so guard is available to all modules.
+		require_once FWA_PLUGIN_DIR . 'includes/licensing/class-fwa-license-client.php';
+		require_once FWA_PLUGIN_DIR . 'includes/licensing/class-fwa-license-manager.php';
+		require_once FWA_PLUGIN_DIR . 'includes/licensing/class-fwa-license-guard.php';
+
+		// 5. API Client.
 		require_once FWA_PLUGIN_DIR . 'includes/api/class-fwa-api-client.php';
 
-		// 5. Instance Manager.
+		// 6. Instance Manager.
 		require_once FWA_PLUGIN_DIR . 'includes/instance/class-fwa-instance-manager.php';
 
-		// 6. Message Sender.
+		// 7. Message Sender.
 		require_once FWA_PLUGIN_DIR . 'includes/messaging/class-fwa-message-sender.php';
 
-		// 7. Contact Manager.
+		// 8. Contact Manager.
 		require_once FWA_PLUGIN_DIR . 'includes/messaging/class-fwa-contact-manager.php';
 
-		// 8. Campaign Manager.
+		// 9. Campaign Manager.
 		require_once FWA_PLUGIN_DIR . 'includes/campaign/class-fwa-campaign-manager.php';
 
-		// 9. Scheduler / Queue.
+		// 10. Scheduler / Queue.
 		require_once FWA_PLUGIN_DIR . 'includes/scheduler/class-fwa-scheduler.php';
 
-		// 10. Automation Engine.
+		// 11. Automation Engine.
 		require_once FWA_PLUGIN_DIR . 'includes/automation/class-fwa-automation-engine.php';
 
-		// 11. Webhook Controller.
+		// 12. Webhook Controller.
 		require_once FWA_PLUGIN_DIR . 'includes/webhook/class-fwa-webhook-controller.php';
 
-		// 12. Logger.
+		// 13. Logger.
 		require_once FWA_PLUGIN_DIR . 'includes/logging/class-fwa-logger.php';
 
-		// 12b. OTP Manager.
+		// 14. OTP Manager.
 		require_once FWA_PLUGIN_DIR . 'includes/class-fwa-otp-manager.php';
 
-		// 12c. Template Engine.
+		// 15. Template Engine.
 		require_once FWA_PLUGIN_DIR . 'includes/class-fwa-template-engine.php';
 
-		// 12d. OTP Login (public shortcodes).
+		// 16. OTP Login (public shortcodes).
 		require_once FWA_PLUGIN_DIR . 'includes/class-fwa-otp-login.php';
 
-		// 12e. Chat Widget.
+		// 17. Chat Widget.
 		require_once FWA_PLUGIN_DIR . 'includes/class-fwa-chat-widget.php';
 
-		// 12f. Advanced Phone Field.
+		// 18. Advanced Phone Field.
 		require_once FWA_PLUGIN_DIR . 'includes/class-fwa-phone-field.php';
 
-		// 13. Dashboard Widget.
+		// 19. Dashboard Widget.
 		require_once FWA_PLUGIN_DIR . 'includes/class-fwa-dashboard-widget.php';
 
-		// 14. Admin (conditional).
+		// 20. Admin (conditional).
 		if ( is_admin() ) {
 			require_once FWA_PLUGIN_DIR . 'admin/class-fwa-admin.php';
 			require_once FWA_PLUGIN_DIR . 'admin/class-fwa-admin-settings.php';
 			require_once FWA_PLUGIN_DIR . 'admin/class-fwa-admin-ajax.php';
 		}
 
-		// 15. Public.
+		// 21. Public.
 		require_once FWA_PLUGIN_DIR . 'includes/class-fwa-public.php';
 	}
 
@@ -135,6 +140,13 @@ class FWA_Loader {
 
 		// Ensure custom cron intervals are always available.
 		add_filter( 'cron_schedules', array( __CLASS__, 'add_cron_schedules' ) );
+
+		// Initialize the license manager (singleton) and schedule revalidation.
+		$license_mgr = FWA_License_Manager::get_instance();
+		$license_mgr->schedule_revalidation();
+
+		// Show admin notice when license is missing/invalid.
+		add_action( 'admin_notices', array( 'FWA_License_Guard', 'maybe_show_admin_notice' ) );
 
 		// Core modules.
 		new FWA_API_Client();

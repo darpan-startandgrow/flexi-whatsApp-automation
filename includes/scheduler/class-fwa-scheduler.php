@@ -415,6 +415,11 @@ class FWA_Scheduler {
 	 * @return void
 	 */
 	public function process() {
+		// License guard — skip schedule processing without a valid license.
+		if ( class_exists( 'FWA_License_Guard' ) && ! FWA_License_Guard::is_licensed() ) {
+			return;
+		}
+
 		// Prevent concurrent processing.
 		if ( get_transient( 'fwa_queue_lock' ) ) {
 			return;

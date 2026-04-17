@@ -354,6 +354,14 @@ class FWA_Campaign_Manager {
 	 * @return int|WP_Error Number of recipients on success, WP_Error on failure.
 	 */
 	public function start( $id ) {
+		// License guard — block campaign execution without a valid license.
+		if ( class_exists( 'FWA_License_Guard' ) ) {
+			$license_check = FWA_License_Guard::can_execute_campaign();
+			if ( is_wp_error( $license_check ) ) {
+				return $license_check;
+			}
+		}
+
 		global $wpdb;
 
 		$id       = absint( $id );
@@ -480,6 +488,11 @@ class FWA_Campaign_Manager {
 	 * @return void
 	 */
 	public function process() {
+		// License guard — skip campaign processing without a valid license.
+		if ( class_exists( 'FWA_License_Guard' ) && ! FWA_License_Guard::is_licensed() ) {
+			return;
+		}
+
 		global $wpdb;
 
 		$table     = FWA_Helpers::get_campaigns_table();

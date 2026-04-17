@@ -69,6 +69,8 @@ class FWA_Uninstaller {
 			'fwa_default_country_code',
 			'fwa_automation_rules',
 			'fwa_delete_data_on_deactivate',
+			'fwa_license_data',
+			'fwa_license_server_url',
 		);
 
 		foreach ( $options as $option ) {
@@ -136,6 +138,7 @@ class FWA_Uninstaller {
 			'fwa_cleanup_logs',
 			'fwa_instance_health_check_event',
 			'fwa_process_campaigns',
+			'fwa_license_revalidate',
 		);
 
 		foreach ( $hooks as $hook ) {
