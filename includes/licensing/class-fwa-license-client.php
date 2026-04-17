@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Class FWA_License_Client
  *
  * Low-level HTTP transport for license operations.
- * Every request includes: licence key, domain, timestamp, and HMAC signature.
+ * Every request includes: license key, domain, timestamp, and HMAC signature.
  *
  * @since 1.2.0
  */
