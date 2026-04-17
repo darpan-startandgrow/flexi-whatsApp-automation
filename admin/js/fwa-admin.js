@@ -481,15 +481,16 @@
 		$('#fwa-license-activate-form').on('submit', function (e) {
 			e.preventDefault();
 
-			var $btn = $('#fwa-license-activate-btn');
-			var key  = $('#fwa-license-key').val();
+			var $btn       = $('#fwa-license-activate-btn');
+			var btnLabel   = $btn.text();
+			var key        = $('#fwa-license-key').val();
 
 			if (!key || !key.trim()) {
-				showLicenseNotice(S.error || 'Please enter a license key.');
+				showLicenseNotice(S.error);
 				return;
 			}
 
-			$btn.prop('disabled', true).text(S.loading || 'Activating…');
+			$btn.prop('disabled', true).text(S.loading);
 			$notices.empty();
 
 			$.post(fwa_admin.ajax_url, {
@@ -498,16 +499,16 @@
 				license_key: key
 			}, function (r) {
 				if (r.success) {
-					showLicenseNotice(r.data.message || 'License activated successfully.', 'success');
+					showLicenseNotice(r.data.message || S.saved, 'success');
 					/* Reload after short delay so the page shows the new state. */
 					setTimeout(function () { location.reload(); }, 1200);
 				} else {
-					showLicenseNotice(r.data && r.data.message ? r.data.message : 'Invalid license key. Please check and try again.');
-					$btn.prop('disabled', false).text('Activate License');
+					showLicenseNotice(r.data && r.data.message ? r.data.message : S.error);
+					$btn.prop('disabled', false).text(btnLabel);
 				}
 			}).fail(function () {
-				showLicenseNotice(S.error || 'An error occurred. Please try again.');
-				$btn.prop('disabled', false).text('Activate License');
+				showLicenseNotice(S.error);
+				$btn.prop('disabled', false).text(btnLabel);
 			});
 		});
 
@@ -515,8 +516,9 @@
 		$('#fwa-license-deactivate-form').on('submit', function (e) {
 			e.preventDefault();
 
-			var $btn = $('#fwa-license-deactivate-btn');
-			$btn.prop('disabled', true).text(S.loading || 'Deactivating…');
+			var $btn     = $('#fwa-license-deactivate-btn');
+			var btnLabel = $btn.text();
+			$btn.prop('disabled', true).text(S.loading);
 			$notices.empty();
 
 			$.post(fwa_admin.ajax_url, {
@@ -524,15 +526,15 @@
 				nonce:  fwa_admin.nonce
 			}, function (r) {
 				if (r.success) {
-					showLicenseNotice(r.data.message || 'License deactivated.', 'success');
+					showLicenseNotice(r.data.message || S.saved, 'success');
 					setTimeout(function () { location.reload(); }, 1200);
 				} else {
 					showLicenseNotice(r.data && r.data.message ? r.data.message : S.error);
-					$btn.prop('disabled', false).text('Deactivate License');
+					$btn.prop('disabled', false).text(btnLabel);
 				}
 			}).fail(function () {
-				showLicenseNotice(S.error || 'An error occurred. Please try again.');
-				$btn.prop('disabled', false).text('Deactivate License');
+				showLicenseNotice(S.error);
+				$btn.prop('disabled', false).text(btnLabel);
 			});
 		});
 	});

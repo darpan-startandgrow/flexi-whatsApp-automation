@@ -35,6 +35,8 @@ class FWA_License_Client {
 	private const SERVER_URL = 'https://license.flexirevivecart.com';
 
 	/**
+	 * Resolved server URL instance property.
+	 *
 	 * @since 1.2.0
 	 * @var string
 	 */
