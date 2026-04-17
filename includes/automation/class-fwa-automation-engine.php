@@ -810,8 +810,8 @@ class FWA_Automation_Engine {
 	 * @return void
 	 */
 	private function execute_rule( $rule, $data ) {
-		// License guard — block automation execution without a valid license.
-		if ( class_exists( 'FWA_License_Guard' ) && ! FWA_License_Guard::is_licensed() ) {
+		// License guard — block automation execution without a valid license (fail-closed).
+		if ( ! FWA_License_Guard::is_licensed() ) {
 			return;
 		}
 
@@ -857,8 +857,8 @@ class FWA_Automation_Engine {
 	 * @return void
 	 */
 	private function dispatch_rule( $rule, $data ) {
-		// Distributed license guard — secondary check at dispatch time.
-		if ( class_exists( 'FWA_License_Guard' ) && ! FWA_License_Guard::is_licensed() ) {
+		// Distributed license guard — secondary check at dispatch time (fail-closed).
+		if ( ! FWA_License_Guard::is_licensed() ) {
 			return;
 		}
 

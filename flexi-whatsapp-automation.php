@@ -152,11 +152,20 @@ add_action(
 );
 
 /**
+ * Load the plugin text domain on 'init' to avoid the
+ * _load_textdomain_just_in_time notice introduced in WP 6.7.
+ *
+ * @since 1.2.1
+ */
+function fwa_load_textdomain() {
+	load_plugin_textdomain( 'flexi-whatsapp-automation', false, dirname( FWA_PLUGIN_BASENAME ) . '/languages' );
+}
+add_action( 'init', 'fwa_load_textdomain' );
+
+/**
  * Initialize the plugin.
  */
 function fwa_init_plugin() {
-	load_plugin_textdomain( 'flexi-whatsapp-automation', false, dirname( FWA_PLUGIN_BASENAME ) . '/languages' );
-
 	require_once FWA_PLUGIN_DIR . 'includes/class-fwa-loader.php';
 	$loader = new FWA_Loader();
 	$loader->run();

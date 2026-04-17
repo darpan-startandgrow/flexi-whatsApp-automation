@@ -78,12 +78,16 @@ class FWA_Activator {
 	/**
 	 * Register recurring cron events.
 	 *
+	 * Uses FWA_Loader::add_cron_schedules() to avoid duplicating custom
+	 * interval definitions.
+	 *
 	 * @since 1.0.0
 	 */
 	private static function schedule_cron_events() {
 
 		// Temporarily register custom intervals so wp_schedule_event can resolve them.
-		add_filter( 'cron_schedules', array( 'FWA_Activator', 'add_cron_schedules' ) );
+		require_once FWA_PLUGIN_DIR . 'includes/class-fwa-loader.php';
+		add_filter( 'cron_schedules', array( 'FWA_Loader', 'add_cron_schedules' ) );
 
 		if ( ! wp_next_scheduled( 'fwa_process_queue' ) ) {
 			wp_schedule_event( time(), 'every_minute', 'fwa_process_queue' );
@@ -96,32 +100,5 @@ class FWA_Activator {
 		if ( ! wp_next_scheduled( 'fwa_cleanup_logs' ) ) {
 			wp_schedule_event( time(), 'daily', 'fwa_cleanup_logs' );
 		}
-	}
-
-	/**
-	 * Add custom cron schedule intervals.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @param array $schedules Existing cron schedules.
-	 * @return array Modified cron schedules.
-	 */
-	public static function add_cron_schedules( $schedules ) {
-
-		if ( ! isset( $schedules['every_minute'] ) ) {
-			$schedules['every_minute'] = array(
-				'interval' => 60,
-				'display'  => __( 'Every Minute', 'flexi-whatsapp-automation' ),
-			);
-		}
-
-		if ( ! isset( $schedules['every_five_minutes'] ) ) {
-			$schedules['every_five_minutes'] = array(
-				'interval' => 300,
-				'display'  => __( 'Every 5 Minutes', 'flexi-whatsapp-automation' ),
-			);
-		}
-
-		return $schedules;
 	}
 }

@@ -69,7 +69,7 @@ class FWA_Campaign_Manager {
 
 		// Determine initial status.
 		$status = 'draft';
-		if ( ! empty( $args['scheduled_at'] ) && strtotime( $args['scheduled_at'] ) > current_time( 'timestamp' ) ) {
+		if ( ! empty( $args['scheduled_at'] ) && strtotime( $args['scheduled_at'] ) > time() ) {
 			$status = 'scheduled';
 		}
 
@@ -354,12 +354,10 @@ class FWA_Campaign_Manager {
 	 * @return int|WP_Error Number of recipients on success, WP_Error on failure.
 	 */
 	public function start( $id ) {
-		// License guard — block campaign execution without a valid license.
-		if ( class_exists( 'FWA_License_Guard' ) ) {
-			$license_check = FWA_License_Guard::can_execute_campaign();
-			if ( is_wp_error( $license_check ) ) {
-				return $license_check;
-			}
+		// License guard — block campaign execution without a valid license (fail-closed).
+		$license_check = FWA_License_Guard::can_execute_campaign();
+		if ( is_wp_error( $license_check ) ) {
+			return $license_check;
 		}
 
 		global $wpdb;
@@ -488,8 +486,8 @@ class FWA_Campaign_Manager {
 	 * @return void
 	 */
 	public function process() {
-		// License guard — skip campaign processing without a valid license.
-		if ( class_exists( 'FWA_License_Guard' ) && ! FWA_License_Guard::is_licensed() ) {
+		// License guard — skip campaign processing without a valid license (fail-closed).
+		if ( ! FWA_License_Guard::is_licensed() ) {
 			return;
 		}
 

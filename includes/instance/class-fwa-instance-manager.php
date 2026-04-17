@@ -470,12 +470,10 @@ class FWA_Instance_Manager {
 	 * @return array|WP_Error QR data / status or error.
 	 */
 	public function connect( $id ) {
-		// License guard — block instance connection without a valid license.
-		if ( class_exists( 'FWA_License_Guard' ) ) {
-			$license_check = FWA_License_Guard::can_connect_instance();
-			if ( is_wp_error( $license_check ) ) {
-				return $license_check;
-			}
+		// License guard — block instance connection without a valid license (fail-closed).
+		$license_check = FWA_License_Guard::can_connect_instance();
+		if ( is_wp_error( $license_check ) ) {
+			return $license_check;
 		}
 
 		$instance = $this->get( absint( $id ) );

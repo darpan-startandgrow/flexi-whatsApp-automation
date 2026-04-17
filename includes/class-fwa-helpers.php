@@ -194,7 +194,7 @@ class FWA_Helpers {
 		return sprintf(
 			/* translators: %s: human-readable time difference */
 			__( '%s ago', 'flexi-whatsapp-automation' ),
-			human_time_diff( $timestamp, current_time( 'timestamp' ) )
+			human_time_diff( $timestamp, time() )
 		);
 	}
 
