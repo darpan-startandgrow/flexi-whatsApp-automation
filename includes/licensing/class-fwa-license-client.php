@@ -26,6 +26,17 @@ class FWA_License_Client {
 	/**
 	 * Remote license server base URL.
 	 *
+	 * Hardcoded to prevent override via filter or option manipulation.
+	 *
+	 * @since 1.2.0
+	 * @since 1.2.1 Hardcoded for security.
+	 * @var string
+	 */
+	private const SERVER_URL = 'https://license.flexirevivecart.com';
+
+	/**
+	 * Resolved server URL instance property.
+	 *
 	 * @since 1.2.0
 	 * @var string
 	 */
@@ -37,17 +48,7 @@ class FWA_License_Client {
 	 * @since 1.2.0
 	 */
 	public function __construct() {
-		/**
-		 * Filters the license server URL.
-		 *
-		 * @since 1.2.0
-		 *
-		 * @param string $url Default license server URL.
-		 */
-		$this->server_url = apply_filters(
-			'fwa_license_server_url',
-			untrailingslashit( get_option( 'fwa_license_server_url', 'https://license.flexirevivecart.com' ) )
-		);
+		$this->server_url = self::SERVER_URL;
 	}
 
 	/*--------------------------------------------------------------

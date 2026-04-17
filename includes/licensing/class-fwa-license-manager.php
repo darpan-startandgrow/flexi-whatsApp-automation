@@ -374,14 +374,12 @@ class FWA_License_Manager {
 		}
 
 		/**
-		 * Filters the license status.
+		 * Return the license status directly without filtering to prevent
+		 * third-party code from spoofing the status.
 		 *
-		 * @since 1.2.0
-		 *
-		 * @param string $status License status.
-		 * @param array  $data   Full license data.
+		 * @since 1.2.1 Filter removed for security hardening.
 		 */
-		return apply_filters( 'fwa_license_status', isset( $data['status'] ) ? $data['status'] : 'inactive', $data );
+		return isset( $data['status'] ) ? $data['status'] : 'inactive';
 	}
 
 	/**
@@ -548,7 +546,10 @@ class FWA_License_Manager {
 	 * @return string HMAC hash.
 	 */
 	private function compute_integrity_hash( $key, $status ) {
-		return hash_hmac( 'sha256', $key . '|' . $status . '|' . $this->get_site_domain(), wp_salt( 'nonce' ) );
+		// Use length-prefixed components to prevent collision from values
+		// containing the '|' separator character.
+		$payload = strlen( $key ) . ':' . $key . '|' . strlen( $status ) . ':' . $status . '|' . $this->get_site_domain();
+		return hash_hmac( 'sha256', $payload, wp_salt( 'nonce' ) );
 	}
 
 	/*--------------------------------------------------------------
@@ -598,24 +599,19 @@ class FWA_License_Manager {
 	}
 
 	/**
-	 * Apply the fwa_license_valid filter.
+	 * Apply internal license validity check.
+	 *
+	 * The filter has been removed to prevent third-party code from
+	 * overriding the license status, which would be a security bypass.
 	 *
 	 * @since 1.2.0
+	 * @since 1.2.1 Filter removed for security hardening.
 	 *
 	 * @param bool $valid Current validity.
-	 * @return bool Filtered validity.
+	 * @return bool Validity (unfiltered).
 	 */
 	private function apply_valid_filter( $valid ) {
-		/**
-		 * Filters whether the license is considered valid.
-		 *
-		 * Third-party plugins can use this to integrate with the license system.
-		 *
-		 * @since 1.2.0
-		 *
-		 * @param bool $valid Whether the license is valid.
-		 */
-		return (bool) apply_filters( 'fwa_license_valid', $valid );
+		return (bool) $valid;
 	}
 
 	/**

@@ -71,12 +71,10 @@ class FWA_Message_Sender {
 	 * @return int|WP_Error Message DB ID on success, WP_Error on failure.
 	 */
 	public function send( $args ) {
-		// License guard — block message sending without a valid license.
-		if ( class_exists( 'FWA_License_Guard' ) ) {
-			$license_check = FWA_License_Guard::can_send_message();
-			if ( is_wp_error( $license_check ) ) {
-				return $license_check;
-			}
+		// License guard — block message sending without a valid license (fail-closed).
+		$license_check = FWA_License_Guard::can_send_message();
+		if ( is_wp_error( $license_check ) ) {
+			return $license_check;
 		}
 
 		$defaults = array(

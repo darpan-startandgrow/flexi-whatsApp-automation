@@ -148,6 +148,13 @@ class FWA_Loader {
 		// Show admin notice when license is missing/invalid.
 		add_action( 'admin_notices', array( 'FWA_License_Guard', 'maybe_show_admin_notice' ) );
 
+		// Reset the guard cache whenever license state changes so that
+		// subsequent checks within the same request see the new value.
+		add_action( 'fwa_license_activated', array( 'FWA_License_Guard', 'reset_cache' ) );
+		add_action( 'fwa_license_deactivated', array( 'FWA_License_Guard', 'reset_cache' ) );
+		add_action( 'fwa_license_revalidated', array( 'FWA_License_Guard', 'reset_cache' ) );
+		add_action( 'fwa_license_invalidated', array( 'FWA_License_Guard', 'reset_cache' ) );
+
 		// Core modules.
 		new FWA_API_Client();
 		new FWA_Instance_Manager();

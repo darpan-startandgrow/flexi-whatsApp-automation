@@ -70,7 +70,7 @@ class FWA_Scheduler {
 		}
 
 		// Validate next_run_at is in the future.
-		if ( ! empty( $args['next_run_at'] ) && strtotime( $args['next_run_at'] ) <= current_time( 'timestamp' ) ) {
+		if ( ! empty( $args['next_run_at'] ) && strtotime( $args['next_run_at'] ) <= time() ) {
 			return new WP_Error( 'fwa_invalid_next_run', __( 'Scheduled time must be in the future.', 'flexi-whatsapp-automation' ) );
 		}
 
@@ -415,8 +415,8 @@ class FWA_Scheduler {
 	 * @return void
 	 */
 	public function process() {
-		// License guard — skip schedule processing without a valid license.
-		if ( class_exists( 'FWA_License_Guard' ) && ! FWA_License_Guard::is_licensed() ) {
+		// License guard — skip schedule processing without a valid license (fail-closed).
+		if ( ! FWA_License_Guard::is_licensed() ) {
 			return;
 		}
 

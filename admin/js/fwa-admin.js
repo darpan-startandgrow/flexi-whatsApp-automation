@@ -455,4 +455,88 @@
 		loadRules();
 	});
 
+	/**
+	 * ----------------------------------------------------------------
+	 *  License Page
+	 * ----------------------------------------------------------------
+	 */
+	$(document).ready(function () {
+		if (!$('.fwa-license-page').length) {
+			return;
+		}
+
+		var $notices = $('#fwa-license-notices');
+
+		function showLicenseNotice(message, type) {
+			type = type || 'error';
+			var cssClass = type === 'success' ? 'notice-success' : 'notice-error';
+			$notices.html(
+				'<div class="notice ' + cssClass + ' is-dismissible"><p>' +
+				$('<span>').text(message).html() +
+				'</p></div>'
+			);
+		}
+
+		/* Activation form. */
+		$('#fwa-license-activate-form').on('submit', function (e) {
+			e.preventDefault();
+
+			var $btn       = $('#fwa-license-activate-btn');
+			var btnLabel   = $btn.text();
+			var key        = $('#fwa-license-key').val();
+
+			if (!key || !key.trim()) {
+				showLicenseNotice(S.error);
+				return;
+			}
+
+			$btn.prop('disabled', true).text(S.loading);
+			$notices.empty();
+
+			$.post(fwa_admin.ajax_url, {
+				action:      'fwa_activate_license',
+				nonce:       fwa_admin.nonce,
+				license_key: key
+			}, function (r) {
+				if (r.success) {
+					showLicenseNotice(r.data.message || S.saved, 'success');
+					/* Reload after short delay so the page shows the new state. */
+					setTimeout(function () { location.reload(); }, 1200);
+				} else {
+					showLicenseNotice(r.data && r.data.message ? r.data.message : S.error);
+					$btn.prop('disabled', false).text(btnLabel);
+				}
+			}).fail(function () {
+				showLicenseNotice(S.error);
+				$btn.prop('disabled', false).text(btnLabel);
+			});
+		});
+
+		/* Deactivation form. */
+		$('#fwa-license-deactivate-form').on('submit', function (e) {
+			e.preventDefault();
+
+			var $btn     = $('#fwa-license-deactivate-btn');
+			var btnLabel = $btn.text();
+			$btn.prop('disabled', true).text(S.loading);
+			$notices.empty();
+
+			$.post(fwa_admin.ajax_url, {
+				action: 'fwa_deactivate_license',
+				nonce:  fwa_admin.nonce
+			}, function (r) {
+				if (r.success) {
+					showLicenseNotice(r.data.message || S.saved, 'success');
+					setTimeout(function () { location.reload(); }, 1200);
+				} else {
+					showLicenseNotice(r.data && r.data.message ? r.data.message : S.error);
+					$btn.prop('disabled', false).text(btnLabel);
+				}
+			}).fail(function () {
+				showLicenseNotice(S.error);
+				$btn.prop('disabled', false).text(btnLabel);
+			});
+		});
+	});
+
 })(jQuery);
